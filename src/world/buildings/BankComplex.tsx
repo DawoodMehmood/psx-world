@@ -2,6 +2,7 @@ import { SITE_TIERS } from '../../config/companies';
 import { HEALTH } from '../../engine/types';
 import { CashVan, Workers, type Lane } from '../agents';
 import { Box, Car, Cyl, GEO, mat, Roof, Tree } from '../kit';
+import { Static } from '../Static';
 import { ActivityWindows, BAY_Z, BayLines, BayVehicles, ClosedBay, CREW, closedByDecline, openBays, Slots, TIER_BAYS, ToLet, Weeds, type SlotDesign } from './shared';
 import type { ArchetypeProps } from './types';
 
@@ -118,14 +119,18 @@ export function BankComplex(props: ArchetypeProps) {
   return (
     <group>
       {/* plaza in front of the skyline */}
-      <Box size={[10.8, 0.04, 2.2]} at={[5.6, 0, 4.9]} color="#f4efe2" shadow={false} />
-      <Atm out={h <= 0} accent={accent} />
+      <Static>
+        <Box size={[10.8, 0.04, 2.2]} at={[5.6, 0, 4.9]} color="#f4efe2" shadow={false} />
+        <Atm out={h <= 0} accent={accent} />
+      </Static>
 
       {/* HQ at the back corner */}
-      <Box size={[4.2, 0.6, TOWER_D + 0.6]} at={[HQ_X, 0, TOWER_Z]} color="#d9d2c0" rounded={0.1} />
+      <Static>
+        <Box size={[4.2, 0.6, TOWER_D + 0.6]} at={[HQ_X, 0, TOWER_Z]} color="#d9d2c0" rounded={0.1} />
+        <Box size={[1.8, 0.2, 0.7]} at={[HQ_X, 1.4, TOWER_Z + TOWER_D / 2 + 0.35]} color={accent} />
+        <Box size={[1.2, 1.3, 0.1]} at={[HQ_X, 0.6, TOWER_Z + TOWER_D / 2 + 0.03]} color="#6f8aa3" />
+      </Static>
       <Tower at={[HQ_X, TOWER_Z]} w={3.6} d={TOWER_D} floors={floors} color="#f3f0e8" {...props} base={0.6} closed={false} />
-      <Box size={[1.8, 0.2, 0.7]} at={[HQ_X, 1.4, TOWER_Z + TOWER_D / 2 + 0.35]} color={accent} />
-      <Box size={[1.2, 1.3, 0.1]} at={[HQ_X, 0.6, TOWER_Z + TOWER_D / 2 + 0.03]} color="#6f8aa3" />
 
       {bays.map((z) => (
         <group key={z}>
@@ -163,10 +168,12 @@ function Tower({ at, w, d, floors, color, accent, seed, closed, base = 0 }: Arch
   const towerH = 0.6 + floors;
   return (
     <group>
-      <Box size={[w, towerH, d]} at={[x, base, z]} color={color} rounded={0.15} />
+      <Static>
+        <Box size={[w, towerH, d]} at={[x, base, z]} color={color} rounded={0.15} />
+        <Box size={[w + 0.3, 0.45, d + 0.3]} at={[x, base + towerH, z]} color={closed ? '#a7a196' : accent} rounded={0.1} />
+        <Box size={[w * 0.55, 0.6, d * 0.55]} at={[x, base + towerH + 0.45, z]} color="#e8e3d6" rounded={0.1} />
+      </Static>
       <ActivityWindows at={[x, base, z]} w={w} d={d} floors={floors - 1} cols={3} seed={seed} closed={closed} darkColor="#7b93ad" />
-      <Box size={[w + 0.3, 0.45, d + 0.3]} at={[x, base + towerH, z]} color={closed ? '#a7a196' : accent} rounded={0.1} />
-      <Box size={[w * 0.55, 0.6, d * 0.55]} at={[x, base + towerH + 0.45, z]} color="#e8e3d6" rounded={0.1} />
       {closed && (
         <>
           <Box size={[w * 0.7, 0.9, 0.06]} at={[x, base, z + d / 2 + 0.02]} color="#8f8a82" shadow={false} />
@@ -193,6 +200,7 @@ function TowerCore({ at, w, d, h }: { at: [number, number]; w: number; d: number
 function BranchHall({ accent, closed }: ArchetypeProps & { closed: boolean }) {
   return (
     <group position={[7.2, 0, 5.0]}>
+      <Static>
       <Box size={[4.6, 0.25, 1.9]} color="#d9d2c0" />
       <Box size={[4.2, 1.9, 1.4]} at={[0, 0.25, -0.2]} color="#f4ecdc" />
       {[-1.8, -0.9, 0, 0.9, 1.8].map((x) => (
@@ -203,6 +211,7 @@ function BranchHall({ accent, closed }: ArchetypeProps & { closed: boolean }) {
         <Roof w={1.9} d={4.6} h={0.6} color={closed ? '#a7a196' : accent} />
       </group>
       <Box size={[1.0, 1.3, 0.06]} at={[0, 0.25, 0.51]} color={closed ? '#8f8a82' : '#6f8aa3'} shadow={false} />
+      </Static>
       {closed && (
         <>
           {/* chained shut: a rope across the steps and a big board hung in front of the columns */}
@@ -219,9 +228,11 @@ function Wing({ at, accent, seed, closed }: ArchetypeProps & { at: [number, numb
   const [x, z] = at;
   return (
     <group>
-      <Box size={[4.4, 2.4, 2.4]} at={[x, 0, z]} color="#efe6d2" rounded={0.1} />
+      <Static>
+        <Box size={[4.4, 2.4, 2.4]} at={[x, 0, z]} color="#efe6d2" rounded={0.1} />
+        <Box size={[4.5, 0.25, 2.5]} at={[x, 2.4, z]} color={closed ? '#a7a196' : accent} />
+      </Static>
       <ActivityWindows at={[x, 0, z]} w={4.4} d={2.4} floors={2} cols={4} seed={seed + 7} closed={closed} darkColor="#7b93ad" />
-      <Box size={[4.5, 0.25, 2.5]} at={[x, 2.4, z]} color={closed ? '#a7a196' : accent} />
       {closed && <ToLet at={[x + 1.2, 0.5, z + 1.25]} w={1.0} />}
     </group>
   );
@@ -231,6 +242,7 @@ function Wing({ at, accent, seed, closed }: ArchetypeProps & { at: [number, numb
 function Rotunda({ accent, closed }: ArchetypeProps & { closed: boolean }) {
   return (
     <group position={[2.2, 0, 12.2]}>
+      <Static>
       <Cyl r={1.3} h={0.3} color="#d9d2c0" />
       <Cyl r={1.1} h={1.9} at={[0, 0.3, 0]} color="#f4ecdc" />
       {Array.from({ length: 8 }, (_, i) => {
@@ -240,6 +252,7 @@ function Rotunda({ accent, closed }: ArchetypeProps & { closed: boolean }) {
       <Cyl r={1.32} h={0.2} at={[0, 2.2, 0]} color="#e8e0cf" />
       <mesh geometry={GEO.dome} material={mat(closed ? '#a7a196' : accent)} position={[0, 2.4, 0]} scale={[1.05, 0.9, 1.05]} castShadow />
       <Cyl r={0.08} h={0.5} at={[0, 3.25, 0]} color="#e8c547" low />
+      </Static>
       {closed && <ToLet at={[0.5, 0.8, 1.25]} w={0.9} />}
     </group>
   );
@@ -260,10 +273,12 @@ function Fountain({ at, dry }: { at: [number, number]; dry: boolean }) {
   const [x, z] = at;
   return (
     <group position={[x, 0, z]}>
-      <Cyl r={1.0} h={0.35} color="#d9d2c0" />
-      <Cyl r={0.85} h={0.05} at={[0, 0.32, 0]} color={dry ? '#b9b1a3' : '#7cc8f0'} shadow={false} />
-      <Cyl r={0.12} h={0.7} at={[0, 0.3, 0]} color="#d9d2c0" low />
-      {!dry && <Cyl r={0.06} h={0.5} at={[0, 1.0, 0]} color="#c8ecff" glow={0.2} low shadow={false} />}
+      <Static>
+        <Cyl r={1.0} h={0.35} color="#d9d2c0" />
+        <Cyl r={0.85} h={0.05} at={[0, 0.32, 0]} color={dry ? '#b9b1a3' : '#7cc8f0'} shadow={false} />
+        <Cyl r={0.12} h={0.7} at={[0, 0.3, 0]} color="#d9d2c0" low />
+        {!dry && <Cyl r={0.06} h={0.5} at={[0, 1.0, 0]} color="#c8ecff" glow={0.2} low shadow={false} />}
+      </Static>
     </group>
   );
 }
