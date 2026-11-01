@@ -22,4 +22,4 @@ The user switches between laptop and cloud sessions without warning, so GitHub `
 
 - `threejs-*` (except `threejs-debug-profiler`): CloudAI-X/threejs-skills, MIT, pinned at commit 0e18186. Three.js r186, R3F 9, drei 10.
 - `threejs-debug-profiler`: majidmanzarpour/threejs-game-skills, MIT, commit 8286774. Use it to baseline draw calls, triangles and memory before optimizing.
-- This project is a procedural low-poly city, not a realism showcase. Where a skill suggests PBR, AAA graphics or generated GLB assets, follow SPEC.md and `src/world/kit.tsx` instead: flat-shaded shared geometry and cached materials.
+- The look is a flat-shaded cartoon low-poly city, not a realism showcase (see SPEC.md). That look and the performance budget are the goals; the current implementation (`src/world/kit.tsx`, procedural shapes) is not sacred. If a popular, well-maintained approach (instancing or merging helpers, a CC0 GLB kit, etc.) measurably beats it on the same scene, propose switching and compare against a measured baseline first.
