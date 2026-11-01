@@ -5,6 +5,7 @@ import { SITE_TIERS } from '../../config/companies';
 import { HEALTH, type SlotState } from '../../engine/types';
 import { Tanker, Workers, type Lane } from '../agents';
 import { Box, Cone, Cyl, Roof, type Vec3 } from '../kit';
+import { Static } from '../Static';
 import { useMotion } from '../motion';
 import { BAY_Z, BayLines, BayVehicles, BUILD_W, ClosedBay, CREW, DOCK_X, isBuilt, openBays, runningCount, Slots, TIER_BAYS, Weeds, type SlotDesign } from './shared';
 import type { ArchetypeProps } from './types';
@@ -147,36 +148,40 @@ export function OilField(props: ArchetypeProps) {
       <Box size={[0.9, 0.5, 0.9]} at={[dx, 0.5 + derrickH, dz]} color={accent} rounded={0.06} />
 
       {/* control hut and flare stack along the back edge */}
-      <Box size={[1.8, 1.3, 1.2]} at={[5.6, 0, 1.2]} color="#ece3cf" rounded={0.08} />
-      <Roof w={2.0} d={1.4} h={0.5} at={[5.6, 1.3, 1.2]} color={accent} />
-      <Box size={[1.0, 0.4, 0.06]} at={[5.6, 0.6, 1.82]} color={h <= 0 ? '#5a554e' : '#8fb4cf'} shadow={false} />
+      <Static>
+        <Box size={[1.8, 1.3, 1.2]} at={[5.6, 0, 1.2]} color="#ece3cf" rounded={0.08} />
+        <Roof w={2.0} d={1.4} h={0.5} at={[5.6, 1.3, 1.2]} color={accent} />
+        <Box size={[1.0, 0.4, 0.06]} at={[5.6, 0.6, 1.82]} color={h <= 0 ? '#5a554e' : '#8fb4cf'} shadow={false} />
+      </Static>
       <Flare at={[8.4, 1.0]} lit={h >= 1} />
 
       {/* the first tank, beside the tanker bays */}
       <Tank at={[9.7, 3.6]} accent={accent} rusty={h <= 0} />
 
       {/* pipeline from the pumpjacks to the tank */}
-      <Cyl r={0.1} h={6.4} at={[5.6, 0.3, 4.2]} rot={[0, 0, Math.PI / 2]} color="#c9a347" low center />
-      {[2.6, 8.6].map((x) => (
-        <Box key={x} size={[0.18, 0.25, 0.25]} at={[x, 0, 4.2]} color="#7b7368" />
-      ))}
+      <Static>
+        <Cyl r={0.1} h={6.4} at={[5.6, 0.3, 4.2]} rot={[0, 0, Math.PI / 2]} color="#c9a347" low center />
+        {[2.6, 8.6].map((x) => (
+          <Box key={x} size={[0.18, 0.25, 0.25]} at={[x, 0, 4.2]} color="#7b7368" />
+        ))}
+      </Static>
 
       <PumpjackUnit index={0} {...props} />
 
       {/* tanker bays with a loading arm over each */}
       {bays.map((z) => (
-        <group key={z}>
+        <Static key={z}>
           <BayLines z={z} />
           <Box size={[0.16, 1.9, 0.16]} at={[BUILD_W + 0.15, 0, z - 0.5]} color="#7b7368" />
           <Box size={[DOCK_X - BUILD_W - 0.15, 0.12, 0.12]} at={[(BUILD_W + 0.15 + DOCK_X) / 2, 1.85, z - 0.5]} color="#c9a347" />
           <Cyl r={0.05} h={0.5} at={[DOCK_X, 1.35, z - 0.5]} color="#5f584f" low />
           {!open.includes(z) && <ClosedBay z={z} />}
-        </group>
+        </Static>
       ))}
       <BayVehicles bays={open} vehicle={(i) => <Tanker cab={i % 2 === 0 ? accent : '#f2b632'} />} />
 
       {tier >= 2 && (
-        <>
+        <Static>
           {/* pipe rack across the yard and a separator vessel on the back-left edge */}
           <Cyl r={0.09} h={9.8} at={[5.7, 0.9, 6.3]} rot={[0, 0, Math.PI / 2]} color="#c9a347" low center />
           {[1.6, 5.7, 9.8].map((x) => (
@@ -187,7 +192,7 @@ export function OilField(props: ArchetypeProps) {
             <Box size={[1.4, 0.6, 0.3]} at={[0, 0, 0.7]} color="#7b7368" />
             <Cyl r={0.55} h={2.2} at={[0, 0.95, 0]} rot={[Math.PI / 2, 0, 0]} color={h <= 0 ? '#b9a48f' : '#e8e6e1'} center />
           </group>
-        </>
+        </Static>
       )}
       {tier >= 3 && <Barrels at={[9.9, 10.6]} />}
 
@@ -208,8 +213,10 @@ function PumpjackUnit({ index, accent, seed, health, slots }: ArchetypeProps & {
 function PumpjackBase({ at }: { at: [number, number] }) {
   return (
     <group position={[at[0], 0, at[1]]}>
-      <Box size={[2, 0.2, 0.7]} color="#6e675e" />
-      <Box size={[0.18, 1.0, 0.18]} at={[0, 0.2, 0]} color="#5b554d" />
+      <Static>
+        <Box size={[2, 0.2, 0.7]} color="#6e675e" />
+        <Box size={[0.18, 1.0, 0.18]} at={[0, 0.2, 0]} color="#5b554d" />
+      </Static>
     </group>
   );
 }
@@ -226,22 +233,24 @@ function Pumpjack({ at, accent, phase, shutIn }: { at: Vec3; accent: string; pha
   });
   return (
     <group position={at}>
-      <Box size={[2, 0.2, 0.7]} color="#6e675e" />
-      <Box size={[0.18, 1.2, 0.18]} at={[0, 0.2, -0.22]} rot={[0.18, 0, 0]} color="#5b554d" />
-      <Box size={[0.18, 1.2, 0.18]} at={[0, 0.2, 0.22]} rot={[-0.18, 0, 0]} color="#5b554d" />
+      <Static>
+        <Box size={[2, 0.2, 0.7]} color="#6e675e" />
+        <Box size={[0.18, 1.2, 0.18]} at={[0, 0.2, -0.22]} rot={[0.18, 0, 0]} color="#5b554d" />
+        <Box size={[0.18, 1.2, 0.18]} at={[0, 0.2, 0.22]} rot={[-0.18, 0, 0]} color="#5b554d" />
+        <Cyl r={0.08} h={0.6} at={[0.95, 0.2, 0]} color="#3f3a35" low />
+        {shutIn && (
+          <group position={[-0.6, 0, 0.36]}>
+            <Box size={[0.06, 0.7, 0.06]} color="#5b554d" shadow={false} />
+            <Box size={[0.36, 0.24, 0.04]} at={[0, 0.5, 0.02]} color="#e8463a" shadow={false} />
+            <Box size={[0.24, 0.05, 0.05]} at={[0, 0.6, 0.04]} color="#ffffff" shadow={false} />
+          </group>
+        )}
+      </Static>
       <group ref={beam} position={[0, 1.35, 0]}>
         <Box size={[1.9, 0.18, 0.2]} at={[0, -0.09, 0]} color={shutIn ? '#9a948a' : accent} />
         <Box size={[0.25, 0.55, 0.26]} at={[0.95, -0.35, 0]} color="#3f3a35" rounded={0.05} />
         <Box size={[0.35, 0.3, 0.3]} at={[-0.85, -0.3, 0]} color="#3f3a35" />
       </group>
-      <Cyl r={0.08} h={0.6} at={[0.95, 0.2, 0]} color="#3f3a35" low />
-      {shutIn && (
-        <group position={[-0.6, 0, 0.36]}>
-          <Box size={[0.06, 0.7, 0.06]} color="#5b554d" shadow={false} />
-          <Box size={[0.36, 0.24, 0.04]} at={[0, 0.5, 0.02]} color="#e8463a" shadow={false} />
-          <Box size={[0.24, 0.05, 0.05]} at={[0, 0.6, 0.04]} color="#ffffff" shadow={false} />
-        </group>
-      )}
     </group>
   );
 }
@@ -249,7 +258,8 @@ function Pumpjack({ at, accent, phase, shutIn }: { at: Vec3; accent: string; pha
 function Tank({ at, accent, rusty = false, bare = false }: { at: [number, number]; accent: string; rusty?: boolean; bare?: boolean }) {
   const [x, z] = at;
   return (
-    <group position={[x, 0, z]}>
+    <Static>
+      <group position={[x, 0, z]}>
       <Cyl r={0.9} h={bare ? 0.8 : 1.8} color={bare ? '#cfc8ba' : '#f1eee6'} />
       {!bare && (
         <>
@@ -261,7 +271,8 @@ function Tank({ at, accent, rusty = false, bare = false }: { at: [number, number
             ))}
         </>
       )}
-    </group>
+      </group>
+    </Static>
   );
 }
 
@@ -281,6 +292,7 @@ function ProcessingUnit({ accent, health }: ArchetypeProps) {
   const running = HEALTH.indexOf(health) >= 2;
   return (
     <group position={[PROCESSING[0], 0, PROCESSING[1]]}>
+      <Static>
       <Box size={[2.4, 0.3, 3.6]} color="#9a948a" />
       {[
         [-0.4, 1.0, 4.2],
@@ -296,6 +308,7 @@ function ProcessingUnit({ accent, health }: ArchetypeProps) {
       ))}
       <Box size={[1.2, 1.2, 1.0]} at={[0.5, 0.3, -1.2]} color="#d8d0c0" rounded={0.06} />
       <Cyl r={0.15} h={1.2} at={[0.7, 1.5, -1.4]} color="#8a8174" low />
+      </Static>
       {running && <Steam at={[0.7, 2.75, -1.4]} />}
     </group>
   );
@@ -343,12 +356,14 @@ function Flare({ at, lit }: { at: [number, number]; lit: boolean }) {
   const [x, z] = at;
   return (
     <group position={[x, 0, z]}>
-      <Box size={[0.8, 0.3, 0.8]} color="#7b7368" />
-      <Cyl r={0.16} h={4.4} at={[0, 0.3, 0]} color="#d8d0c0" />
-      {[1.4, 2.8].map((y) => (
-        <Cyl key={y} r={0.2} h={0.2} at={[0, y, 0]} color="#d8463b" shadow={false} />
-      ))}
-      <Cyl r={0.24} h={0.2} at={[0, 4.6, 0]} color="#5f584f" />
+      <Static>
+        <Box size={[0.8, 0.3, 0.8]} color="#7b7368" />
+        <Cyl r={0.16} h={4.4} at={[0, 0.3, 0]} color="#d8d0c0" />
+        {[1.4, 2.8].map((y) => (
+          <Cyl key={y} r={0.2} h={0.2} at={[0, y, 0]} color="#d8463b" shadow={false} />
+        ))}
+        <Cyl r={0.24} h={0.2} at={[0, 4.6, 0]} color="#5f584f" />
+      </Static>
       {lit && (
         <group ref={flame} position={[0, 4.8, 0]}>
           <mesh material={glow} position={[0, 0.4, 0]}>
@@ -369,9 +384,11 @@ function Barrels({ at }: { at: [number, number] }) {
   ];
   return (
     <group position={[at[0], 0, at[1]]}>
-      {spots.map(([x, z, c]) => (
-        <Cyl key={`${x}${z}`} r={0.2} h={0.5} at={[x, 0, z]} color={c} low />
-      ))}
+      <Static>
+        {spots.map(([x, z, c]) => (
+          <Cyl key={`${x}${z}`} r={0.2} h={0.5} at={[x, 0, z]} color={c} low />
+        ))}
+      </Static>
     </group>
   );
 }

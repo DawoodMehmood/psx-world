@@ -5,6 +5,7 @@ import { SITE_TIERS } from '../../config/companies';
 import { HEALTH } from '../../engine/types';
 import { Van, Workers, type Lane } from '../agents';
 import { Box, Cone, Cyl, GEO, mat, Rope, Tree, type Vec3 } from '../kit';
+import { Static } from '../Static';
 import { agentCount, useMotion } from '../motion';
 import { ActivityWindows, BAY_Z, BayLines, BayVehicles, BUILD_W, ClosedBay, CREW, closedByDecline, isBuilt, openBays, Slots, TIER_BAYS, ToLet, Weeds, type SlotDesign } from './shared';
 import type { ArchetypeProps } from './types';
@@ -137,15 +138,17 @@ export function TechCampus(props: ArchetypeProps) {
   return (
     <group>
       {/* lawn over the build area, and a path from the HQ door */}
-      <Box size={[BUILD_W - 0.2, 0.04, depth - 0.2]} at={[BUILD_W / 2, 0, depth / 2]} color={LAWN} shadow={false} />
-      <Box size={[0.8, 0.06, 2.0]} at={[hx, 0, hz + 2.7]} color="#eef1ee" shadow={false} />
+      <Static>
+        <Box size={[BUILD_W - 0.2, 0.04, depth - 0.2]} at={[BUILD_W / 2, 0, depth / 2]} color={LAWN} shadow={false} />
+        <Box size={[0.8, 0.06, 2.0]} at={[hx, 0, hz + 2.7]} color="#eef1ee" shadow={false} />
 
-      {/* HQ tower at the back corner */}
-      <Box size={[3.4, towerH, 3.4]} at={[hx, 0, hz]} color="#9fd3ee" rounded={0.2} />
+        {/* HQ tower at the back corner */}
+        <Box size={[3.4, towerH, 3.4]} at={[hx, 0, hz]} color="#9fd3ee" rounded={0.2} />
+        <Cyl r={1.95} h={0.3} at={[hx, towerH, hz]} color={accent} />
+        <Cyl r={1.1} h={0.5} at={[hx, towerH + 0.3, hz]} color="#e9f4f8" />
+        <Cyl r={0.05} h={1.2} at={[hx, towerH + 0.8, hz]} color="#cfd8dc" low />
+      </Static>
       <ActivityWindows at={[hx, 0, hz]} w={3.4} d={3.4} floors={floors - 1} floorHeight={0.9} baseHeight={0.5} cols={4} seed={seed} litColor="#fff3b0" darkColor="#5f9fc6" />
-      <Cyl r={1.95} h={0.3} at={[hx, towerH, hz]} color={accent} />
-      <Cyl r={1.1} h={0.5} at={[hx, towerH + 0.3, hz]} color="#e9f4f8" />
-      <Cyl r={0.05} h={1.2} at={[hx, towerH + 0.8, hz]} color="#cfd8dc" low />
 
       <Antenna at={MAST} />
       {/* the line runs to the front data center, so it goes in once that is built */}
@@ -153,10 +156,10 @@ export function TechCampus(props: ArchetypeProps) {
       <Drones center={HQ} y={towerH + 1.6} />
 
       {bays.map((z) => (
-        <group key={z}>
+        <Static key={z}>
           <BayLines z={z} color="#f7f4ec" />
           {!open.includes(z) && <ClosedBay z={z} />}
-        </group>
+        </Static>
       ))}
       <BayVehicles bays={open} vehicle={(i) => <Van color={i % 2 === 0 ? accent : '#f2b632'} />} />
 
@@ -195,12 +198,14 @@ function DataCenter({ at, accent, seed, closed }: ArchetypeProps & { at: [number
   const [x, z] = at;
   return (
     <group position={[x, 0, z]}>
-      <Box size={[4.4, 1.6, 1.7]} color="#5c6670" rounded={0.1} />
-      <Box size={[4.5, 0.2, 1.8]} at={[0, 1.6, 0]} color="#47505a" />
-      {[-1.4, -0.2, 1.0].map((cx) => (
-        <Box key={cx} size={[0.6, 0.35, 0.6]} at={[cx, 1.8, -0.3]} color="#8a959e" />
-      ))}
-      <Box size={[4.4, 0.18, 0.06]} at={[0, 1.25, 0.86]} color={closed ? '#8a959e' : accent} shadow={false} />
+      <Static>
+        <Box size={[4.4, 1.6, 1.7]} color="#5c6670" rounded={0.1} />
+        <Box size={[4.5, 0.2, 1.8]} at={[0, 1.6, 0]} color="#47505a" />
+        {[-1.4, -0.2, 1.0].map((cx) => (
+          <Box key={cx} size={[0.6, 0.35, 0.6]} at={[cx, 1.8, -0.3]} color="#8a959e" />
+        ))}
+        <Box size={[4.4, 0.18, 0.06]} at={[0, 1.25, 0.86]} color={closed ? '#8a959e' : accent} shadow={false} />
+      </Static>
       <group ref={lights}>
         {Array.from({ length: 15 }, (_, i) => (
           <Box
@@ -223,9 +228,11 @@ function OfficeBlock({ scale, accent, seed, closed }: ArchetypeProps & { closed:
   const hgt = floors * 0.9 + 0.4;
   return (
     <group>
-      <Box size={[2.4, hgt, 3.4]} at={[OFFICE[0], 0, OFFICE[1]]} color="#f4f6f7" rounded={0.15} />
+      <Static>
+        <Box size={[2.4, hgt, 3.4]} at={[OFFICE[0], 0, OFFICE[1]]} color="#f4f6f7" rounded={0.15} />
+        <Box size={[2.5, 0.3, 3.5]} at={[OFFICE[0], hgt, OFFICE[1]]} color={closed ? '#a7a196' : accent} rounded={0.1} />
+      </Static>
       <ActivityWindows at={[OFFICE[0], 0, OFFICE[1]]} w={2.4} d={3.4} floors={floors - 1} floorHeight={0.9} baseHeight={0.5} cols={3} seed={seed + 3} closed={closed} darkColor="#7fb2cf" />
-      <Box size={[2.5, 0.3, 3.5]} at={[OFFICE[0], hgt, OFFICE[1]]} color={closed ? '#a7a196' : accent} rounded={0.1} />
       {closed && <ToLet at={[OFFICE[0], 0.6, OFFICE[1] + 1.76]} w={1.0} />}
     </group>
   );
@@ -235,6 +242,7 @@ function OfficeBlock({ scale, accent, seed, closed }: ArchetypeProps & { closed:
 function LabDome({ accent, closed }: ArchetypeProps & { closed: boolean }) {
   return (
     <group position={[DOME[0], 0, DOME[1]]}>
+      <Static>
       <Cyl r={1.4} h={0.5} color="#e9f4f8" />
       <Cyl r={1.42} h={0.14} at={[0, 0.5, 0]} color={closed ? '#a7a196' : accent} shadow={false} />
       <mesh geometry={GEO.dome} material={mat(closed ? '#8fa6b3' : '#9fd3ee', closed ? 0 : 0.15)} position={[0, 0.6, 0]} scale={[1.35, 1.6, 1.35]} castShadow />
@@ -244,6 +252,7 @@ function LabDome({ accent, closed }: ArchetypeProps & { closed: boolean }) {
           <meshStandardMaterial color="#e9f4f8" />
         </mesh>
       ))}
+      </Static>
       {closed && <ToLet at={[0.4, 0.15, 1.42]} w={0.9} />}
     </group>
   );
@@ -258,6 +267,7 @@ function DishFarm({ accent, closed }: ArchetypeProps & { closed: boolean }) {
   ];
   return (
     <group position={[DISHES[0], 0, DISHES[1]]}>
+      <Static>
       {spots.map(([x, z, r], i) => (
         <group key={i} position={[x, 0, z]}>
           <Box size={[0.8, 0.3, 0.8]} color="#8e9a9f" />
@@ -268,6 +278,7 @@ function DishFarm({ accent, closed }: ArchetypeProps & { closed: boolean }) {
           </group>
         </group>
       ))}
+      </Static>
       {closed && <ToLet at={[-0.4, 0.4, 1.2]} w={0.9} />}
     </group>
   );
@@ -318,6 +329,7 @@ export function Antenna({ at }: { at: [number, number] }) {
   const faceZ = MAST_BASE + (MAST_TOP - MAST_BASE) * (dishY / MAST_H);
   return (
     <group position={[at[0], 0, at[1]]}>
+      <Static>
       <Box size={[1.4, 0.2, 1.4]} color="#b9bfc2" />
       {/* equipment cabinet */}
       <Box size={[0.5, 0.6, 0.35]} at={[0.35, 0.2, 0.75]} color="#d8dde0" rounded={0.04} />
@@ -353,8 +365,9 @@ export function Antenna({ at }: { at: [number, number] }) {
         </group>
         {/* top spike and light */}
         <Cyl r={0.03} h={0.7} at={[0, MAST_H, 0]} color="#cfd8dc" low />
-        <mesh ref={beacon} geometry={GEO.ball} material={mat('#ff3b30', 1.6)} position={[0, MAST_H + 0.75, 0]} scale={0.09} />
       </group>
+      </Static>
+      <mesh ref={beacon} geometry={GEO.ball} material={mat('#ff3b30', 1.6)} position={[0, 0.2 + MAST_H + 0.75, 0]} scale={0.09} />
     </group>
   );
 }
@@ -390,12 +403,14 @@ function NetworkLine({ on, accent }: { on: boolean; accent: string }) {
   });
   return (
     <group>
-      {cable.slice(0, -1).map((p, i) => (
-        <Rope key={i} from={[p.x, p.y, p.z]} to={[cable[i + 1].x, cable[i + 1].y, cable[i + 1].z]} color="#3a3f4a" r={0.03} />
-      ))}
-      {[1.8, 2.8].map((dz, i) => (
-        <Cyl key={dz} r={0.05} h={2.0 - i * 0.1} at={[MAST[0] + 0.2 - i * 0.3, 0, MAST[1] + dz]} color="#8e9a9f" low />
-      ))}
+      <Static>
+        {cable.slice(0, -1).map((p, i) => (
+          <Rope key={i} from={[p.x, p.y, p.z]} to={[cable[i + 1].x, cable[i + 1].y, cable[i + 1].z]} color="#3a3f4a" r={0.03} />
+        ))}
+        {[1.8, 2.8].map((dz, i) => (
+          <Cyl key={dz} r={0.05} h={2.0 - i * 0.1} at={[MAST[0] + 0.2 - i * 0.3, 0, MAST[1] + dz]} color="#8e9a9f" low />
+        ))}
+      </Static>
       {Array.from({ length: 6 }, (_, i) => (
         <mesh
           key={i}
@@ -457,6 +472,7 @@ function Cafe({ at, accent, closed }: { at: [number, number]; accent: string; cl
   const [x, z] = at;
   return (
     <group position={[x, 0, z]}>
+      <Static>
       <Box size={[1.6, 1.2, 1.2]} color="#f4ecdc" rounded={0.08} />
       <Box size={[1.8, 0.1, 0.6]} at={[0, 1.1, 0.85]} rot={[0.3, 0, 0]} color={closed ? '#a7a196' : accent} shadow={false} />
       <Box size={[1.0, 0.5, 0.05]} at={[0, 0.3, 0.61]} color={closed ? '#5a554e' : '#cfe9f7'} shadow={false} />
@@ -468,6 +484,7 @@ function Cafe({ at, accent, closed }: { at: [number, number]; accent: string; cl
             <Cyl r={0.22} h={0.05} at={[0, 0.45, 0]} color="#f7f7f7" low shadow={false} />
           </group>
         ))}
+      </Static>
     </group>
   );
 }

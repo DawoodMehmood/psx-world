@@ -22,7 +22,9 @@ export function Static({ children }: { children: ReactNode }) {
     root.traverse((o) => {
       const mesh = o as THREE.Mesh;
       if (!mesh.isMesh || (mesh as THREE.InstancedMesh).isInstancedMesh || o.userData.mergedByStatic) return;
-      const material = mesh.material as THREE.Material;
+      const material = mesh.material as THREE.MeshStandardMaterial;
+      // Textured meshes need their UVs, which the merge drops: leave them as they are.
+      if (material.map) return;
       const key = `${material.uuid}|${mesh.castShadow}|${mesh.receiveShadow}`;
       let b = buckets.get(key);
       if (!b) buckets.set(key, (b = { material, cast: mesh.castShadow, receive: mesh.receiveShadow, geos: [] }));

@@ -5,6 +5,7 @@ import { SITE_TIERS } from '../../config/companies';
 import { HEALTH, type SlotState } from '../../engine/types';
 import { MixerTruck, Workers, type Lane } from '../agents';
 import { Box, Cone, Cyl, GEO, mat, Roof, Rope, TARP_BLUE, type Vec3 } from '../kit';
+import { Static } from '../Static';
 import { agentCount, useMotion } from '../motion';
 import { BAY_Z, BayLines, BayVehicles, BUILD_W, ClosedBay, CREW, DOCK_X, isBuilt, openBays, runningCount, Slots, Weeds, type SlotDesign } from './shared';
 import type { ArchetypeProps } from './types';
@@ -149,10 +150,10 @@ export function CementPlant(props: ArchetypeProps) {
 
       {/* tier 2 yard: clinker stockpiles between the kiln rows */}
       {tier >= 2 && (
-        <>
+        <Static>
           <Cone r={0.8} h={1} at={[8.7, 0, 9.1]} color="#9a948a" />
           <Cone r={0.6} h={0.8} at={[7.6, 0, 9.3]} color="#a8a196" />
-        </>
+        </Static>
       )}
 
       <Slots designs={SLOTS} props={props} />
@@ -178,6 +179,7 @@ function Hall({ h }: { h: number }) {
   );
   return (
     <group position={[4.8, 0, 1.2]}>
+      <Static>
       <Box size={[3.6, 2.2, 2.0]} color="#efe7d6" rounded={0.08} />
       {/* ridge along the hall's length */}
       <group position={[0, 2.2, 0]} rotation={[0, Math.PI / 2, 0]}>
@@ -193,6 +195,7 @@ function Hall({ h }: { h: number }) {
           {windows}
         </group>
       ))}
+      </Static>
     </group>
   );
 }
@@ -211,7 +214,7 @@ function SiloBay({ bay, scale, accent, health, slots }: ArchetypeProps & { bay: 
   const armFrom = SILO_X + SILO_R - 0.1;
   const armTo = DOCK_X - 0.1;
   return (
-    <group>
+    <Static>
       <Cyl r={SILO_R} h={siloH} at={[SILO_X, 0, z]} color="#e6e1d6" />
       <Cyl r={SILO_R + 0.02} h={0.2} at={[SILO_X, siloH * 0.78, z]} color={h <= 0 ? '#9a948a' : accent} />
       <Cone r={SILO_R} h={0.4} at={[SILO_X, siloH, z]} color="#cfc8ba" />
@@ -227,7 +230,7 @@ function SiloBay({ bay, scale, accent, health, slots }: ArchetypeProps & { bay: 
           <Box size={[0.04, 0.24, 0.36]} at={[0, 0.42, 0.2]} color={accent} shadow={false} />
         </group>
       )}
-    </group>
+    </Static>
   );
 }
 
@@ -240,8 +243,10 @@ function LoadingWing({ bays, ...p }: ArchetypeProps & { bays: number[] }) {
       {bays.map((i) => (
         <SiloBay key={i} bay={i} {...p} />
       ))}
-      <Box size={[2.4, 0.12, span]} at={[BUILD_W + 1.25, 2.3, z]} color={p.accent} rounded={0.04} />
-      {[BUILD_W + 0.15, BUILD_W + 2.35].flatMap((x) => [z - span / 2 + 0.1, z + span / 2 - 0.1].map((pz) => <Box key={`${x}${pz}`} size={[0.1, 2.3, 0.1]} at={[x, 0, pz]} color="#8a8174" />))}
+      <Static>
+        <Box size={[2.4, 0.12, span]} at={[BUILD_W + 1.25, 2.3, z]} color={p.accent} rounded={0.04} />
+        {[BUILD_W + 0.15, BUILD_W + 2.35].flatMap((x) => [z - span / 2 + 0.1, z + span / 2 - 0.1].map((pz) => <Box key={`${x}${pz}`} size={[0.1, 2.3, 0.1]} at={[x, 0, pz]} color="#8a8174" />))}
+      </Static>
     </group>
   );
 }
@@ -267,12 +272,14 @@ function KilnLine({ line, scale, accent, seed, health, slots, bare = false }: Ar
       {mothballed && (
         // chained shut: a rope with a padlock board across the front of the line
         <group position={[burnerX + 0.35, 0, z]} rotation={[0, Math.PI / 2, 0]}>
+          <Static>
           {[-0.7, 0.7].map((px) => (
             <Box key={px} size={[0.08, 0.6, 0.08]} at={[px, 0, 0]} color="#5f584f" shadow={false} />
           ))}
           <Rope from={[-0.7, 0.5, 0]} to={[0, 0.38, 0]} color="#e8c547" r={0.02} />
           <Rope from={[0, 0.38, 0]} to={[0.7, 0.5, 0]} color="#e8c547" r={0.02} />
           <Box size={[0.32, 0.22, 0.04]} at={[0, 0.2, -0.02]} color="#e8463a" shadow={false} />
+          </Static>
         </group>
       )}
     </group>
@@ -283,17 +290,19 @@ function Preheater({ z, h, accent, stack, smoke }: { z: number; h: number; accen
   const x = PREHEATER_X;
   return (
     <group>
-      <Box size={[1.7, h, 1.7]} at={[x, 0, z]} color="#d8d0c0" rounded={0.08} />
-      {[0.3, 0.55, 0.8].map((f) => (
-        <Box key={f} size={[1.85, 0.16, 1.85]} at={[x, h * f, z]} color="#8a8174" />
-      ))}
-      {stack && (
-        <>
-          <Cyl r={0.24} h={1.4} at={[x - 0.3, h, z - 0.3]} color="#b9b1a3" />
-          <Cyl r={0.26} h={0.18} at={[x - 0.3, h + 1.24, z - 0.3]} color={smoke ? accent : '#8a8174'} />
-          {smoke && <Smoke at={[x - 0.3, h + 1.42, z - 0.3]} />}
-        </>
-      )}
+      <Static>
+        <Box size={[1.7, h, 1.7]} at={[x, 0, z]} color="#d8d0c0" rounded={0.08} />
+        {[0.3, 0.55, 0.8].map((f) => (
+          <Box key={f} size={[1.85, 0.16, 1.85]} at={[x, h * f, z]} color="#8a8174" />
+        ))}
+        {stack && (
+          <>
+            <Cyl r={0.24} h={1.4} at={[x - 0.3, h, z - 0.3]} color="#b9b1a3" />
+            <Cyl r={0.26} h={0.18} at={[x - 0.3, h + 1.24, z - 0.3]} color={smoke ? accent : '#8a8174'} />
+          </>
+        )}
+      </Static>
+      {stack && smoke && <Smoke at={[x - 0.3, h + 1.42, z - 0.3]} />}
     </group>
   );
 }
@@ -307,7 +316,7 @@ function Kiln({ at, length, r, piers, color, bare = false, wrapped = false }: { 
   const [x, y, z] = at;
   const tilt = Math.PI / 2 - 0.06;
   return (
-    <group>
+    <Static>
       {piers.map((px) => (
         <Box key={px} size={[0.4, y - r * 0.6 - (px - x) * 0.06, r * 1.6]} at={[px, 0, z]} color="#8a8174" />
       ))}
@@ -330,7 +339,7 @@ function Kiln({ at, length, r, piers, color, bare = false, wrapped = false }: { 
           })}
         </>
       )}
-    </group>
+    </Static>
   );
 }
 
@@ -356,9 +365,11 @@ function KilnGlow({ at, seed, cold = false }: { at: Vec3; seed: number; cold?: b
 function ClinkerDome() {
   return (
     <group position={[DOME[0], 0, DOME[1]]}>
+      <Static>
       <Cyl r={1.2} h={0.5} color="#cfc8ba" />
       <mesh geometry={GEO.dome} material={mat('#e6e1d6')} position={[0, 0.5, 0]} scale={[1.15, 1.1, 1.15]} castShadow receiveShadow />
       <Box size={[0.5, 0.6, 0.06]} at={[0, 0.2, 1.18]} color="#7d756a" shadow={false} />
+      </Static>
     </group>
   );
 }
@@ -366,7 +377,7 @@ function ClinkerDome() {
 /** The quarry pit at the front of the first row, where the conveyor starts. */
 function Quarry() {
   return (
-    <group>
+    <Static>
       <Box size={[2.6, 0.06, 1.3]} at={[4.6, 0, 5.25]} color="#9c8466" shadow={false} />
       {(
         [
@@ -377,7 +388,7 @@ function Quarry() {
       ).map(([x, z, r]) => (
         <mesh key={x + z} geometry={GEO.blob} material={mat('#b49a78')} position={[x, r * 0.6, z]} scale={[r * 1.3, r, r * 1.2]} castShadow />
       ))}
-    </group>
+    </Static>
   );
 }
 
@@ -411,8 +422,10 @@ function Conveyor({ from, to }: { from: Vec3; to: Vec3 }) {
     <group>
       {/* local +x runs from the quarry up to the preheater */}
       <group position={mid} quaternion={q}>
-        <Box size={[len, 0.14, 0.5]} at={[0, -0.07, 0]} color="#4d4740" />
-        <Box size={[len, 0.05, 0.38]} at={[0, 0.07, 0]} color="#2f2b27" />
+        <Static>
+          <Box size={[len, 0.14, 0.5]} at={[0, -0.07, 0]} color="#4d4740" />
+          <Box size={[len, 0.05, 0.38]} at={[0, 0.07, 0]} color="#2f2b27" />
+        </Static>
         {Array.from({ length: 8 }, (_, i) => (
           <mesh
             key={i}
@@ -427,9 +440,11 @@ function Conveyor({ from, to }: { from: Vec3; to: Vec3 }) {
           />
         ))}
       </group>
-      {legs.map((p) => (
-        <Box key={p.x} size={[0.12, p.y - 0.1, 0.12]} at={[p.x, 0, p.z]} color="#5f584f" />
-      ))}
+      <Static>
+        {legs.map((p) => (
+          <Box key={p.x} size={[0.12, p.y - 0.1, 0.12]} at={[p.x, 0, p.z]} color="#5f584f" />
+        ))}
+      </Static>
     </group>
   );
 }
