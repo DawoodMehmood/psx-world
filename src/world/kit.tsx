@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { RoundedBox } from '@react-three/drei';
-import type { ReactNode } from 'react';
+import { useLayoutEffect, useRef, type ReactNode } from 'react';
 
 /**
  * Low-poly building kit. Every shape shares a unit geometry and a cached
@@ -28,6 +28,9 @@ export function mat(color: string, glow = 0): THREE.MeshStandardMaterial {
   }
   return m;
 }
+
+/** Neutral base for instanced meshes that take their color per instance. */
+const WHITE = mat('#ffffff');
 
 export const GEO = {
   box: new THREE.BoxGeometry(1, 1, 1),
@@ -100,6 +103,56 @@ export function Tree({ at, size = 1, color = '#4fa83d' }: { at: Vec3; size?: num
       <mesh geometry={GEO.blob} material={mat(color)} position={[0, 1.05, 0]} scale={[0.6, 0.65, 0.6]} castShadow />
       <mesh geometry={GEO.blob} material={mat(color)} position={[0.15, 1.45, 0.05]} scale={[0.38, 0.4, 0.38]} rotation={[0.4, 0.6, 0]} castShadow />
     </group>
+  );
+}
+
+export interface TreeSpec {
+  at: Vec3;
+  size?: number;
+  color?: string;
+}
+
+/**
+ * Many static trees as three instanced meshes (trunks, lower crowns, upper crowns)
+ * instead of three meshes per tree. Same shapes as `Tree`. Per-tree color goes in
+ * instance colors over a white material.
+ */
+export function Trees({ trees }: { trees: TreeSpec[] }) {
+  const trunks = useRef<THREE.InstancedMesh>(null);
+  const low = useRef<THREE.InstancedMesh>(null);
+  const high = useRef<THREE.InstancedMesh>(null);
+  useLayoutEffect(() => {
+    const o = new THREE.Object3D();
+    const c = new THREE.Color();
+    const place = (mesh: THREE.InstancedMesh | null, i: number, t: TreeSpec, pos: Vec3, scale: Vec3, rot: Vec3, color?: string) => {
+      if (!mesh) return;
+      const s = t.size ?? 1;
+      o.position.set(t.at[0] + pos[0] * s, t.at[1] + pos[1] * s, t.at[2] + pos[2] * s);
+      o.rotation.set(rot[0], rot[1], rot[2]);
+      o.scale.set(scale[0] * s, scale[1] * s, scale[2] * s);
+      o.updateMatrix();
+      mesh.setMatrixAt(i, o.matrix);
+      if (color) mesh.setColorAt(i, c.set(color));
+    };
+    trees.forEach((t, i) => {
+      const green = t.color ?? '#4fa83d';
+      place(trunks.current, i, t, [0, 0.3, 0], [0.12, 0.6, 0.12], [0, 0, 0], '#8a5a34');
+      place(low.current, i, t, [0, 1.05, 0], [0.6, 0.65, 0.6], [0, 0, 0], green);
+      place(high.current, i, t, [0.15, 1.45, 0.05], [0.38, 0.4, 0.38], [0.4, 0.6, 0], green);
+    });
+    for (const m of [trunks.current, low.current, high.current]) {
+      if (!m) continue;
+      m.instanceMatrix.needsUpdate = true;
+      if (m.instanceColor) m.instanceColor.needsUpdate = true;
+    }
+  }, [trees]);
+  const key = trees.length;
+  return (
+    <>
+      <instancedMesh key={`t${key}`} ref={trunks} args={[GEO.cylLow, WHITE, trees.length]} castShadow receiveShadow frustumCulled={false} />
+      <instancedMesh key={`l${key}`} ref={low} args={[GEO.blob, WHITE, trees.length]} castShadow frustumCulled={false} />
+      <instancedMesh key={`h${key}`} ref={high} args={[GEO.blob, WHITE, trees.length]} castShadow frustumCulled={false} />
+    </>
   );
 }
 

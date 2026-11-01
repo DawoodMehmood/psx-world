@@ -23,6 +23,9 @@ These are goals, not implementation rules. The current approach (`src/world/kit.
 
 Baseline scene: default scenario at tick 0, 1024×768 viewport, devicePixelRatio 2, dev server (not a production build), run in the in-app browser pane. 3,378 meshes, 254 geometries, 215 materials, 1 instanced mesh (0 instances at tick 0), 1 directional and 1 hemisphere light. Turning the directional light's shadows off dropped calls to ~2,700 and triangles to ~215,000 but did not change fps, so the limit looks like per-draw-call CPU cost, not the GPU.
 
+## Progress log
+- 2026-11-01: scattered scenery trees (150) now render as 3 instanced meshes (`Trees` in `kit.tsx`) instead of 450 meshes. Draw calls ~4,000 → ~3,200, meshes 3,378 → 2,931, triangles unchanged. Visually identical in the default view. Frame rate in the pane read 60 vs 34 before, but the pane's frame cap may have differed between runs; don't trust fps comparisons until measured twice in one session. The company-lot and Exchange trees still use the per-mesh `Tree`.
+
 ## Biggest known opportunity
 Almost everything is one mesh per part (3,378 meshes). Merge or instance parts that never change independently, per building and per tier, and keep separate meshes only for parts that animate. Reuse materials (215 now, many differ only in color).
 

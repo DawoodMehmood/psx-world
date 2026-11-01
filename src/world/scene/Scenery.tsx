@@ -4,7 +4,7 @@ import type { Group } from 'three';
 import { createRng } from '../../engine/rng';
 import { inflate, mainRoads, overlaps, parkRect, lotRect, districtStreets, center, signSpot, LOT_SIZE, PLAZA_HALF, WORLD_HALF, type Rect } from '../../config/layout';
 import { SECTORS } from '../../config/sectors';
-import { Box, Car, Cyl, Tree, Ball, type Vec3 } from '../kit';
+import { Box, Car, Cyl, Trees, Ball, type Vec3 } from '../kit';
 import { District } from './District';
 import { SectorSign } from './SectorSign';
 
@@ -55,9 +55,7 @@ export function Scenery() {
           <District sector={s} />
         </group>
       ))}
-      {trees.map((t, i) => (
-        <Tree key={i} at={t.at} size={t.size} color={t.color} />
-      ))}
+      <Trees trees={trees} />
       <RingTraffic />
     </group>
   );
