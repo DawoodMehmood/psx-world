@@ -17,3 +17,9 @@ The user switches between laptop and cloud sessions without warning, so GitHub `
 - **Unfinished or failing work:** still commit and push, but to a `claude/` branch, never to `main`.
 - **Never leave uncommitted changes** at the end of a turn.
 - If pushing to `main` is blocked, say so and leave the work on the `claude/` branch.
+
+## Third-party skills (in `.claude/skills/`)
+
+- `threejs-*` (except `threejs-debug-profiler`): CloudAI-X/threejs-skills, MIT, pinned at commit 0e18186. Three.js r186, R3F 9, drei 10.
+- `threejs-debug-profiler`: majidmanzarpour/threejs-game-skills, MIT, commit 8286774. Use it to baseline draw calls, triangles and memory before optimizing.
+- This project is a procedural low-poly city, not a realism showcase. Where a skill suggests PBR, AAA graphics or generated GLB assets, follow SPEC.md and `src/world/kit.tsx` instead: flat-shaded shared geometry and cached materials.
