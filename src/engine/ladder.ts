@@ -28,3 +28,8 @@ export const slotsBuilt = (level: number): number => LEVEL_KINDS.slice(0, level)
 
 /** The pad a BUILDING level builds on. */
 export const slotIndex = (level: number): number => slotsBuilt(level) - 1;
+
+/** Levels that upgrade something already standing, in order (0 = the first upgrade). */
+export const UPGRADE_LEVELS = LEVEL_KINDS.flatMap((k, i) => (k === 'UPGRADE' ? [i + 1] : []));
+
+export const upgradeIndex = (level: number): number => UPGRADE_LEVELS.indexOf(level);

@@ -9,4 +9,6 @@ export interface ArchetypeProps {
   /** Current site tier, from 1. */
   tier: number;
   slots: SlotState[];
+  /** Upgrades to what stands: levels 3, 6 and 10 of the ladder. */
+  upgrades: SlotState[];
 }

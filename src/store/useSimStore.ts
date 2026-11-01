@@ -104,6 +104,7 @@ export function useCompanyVisual(ticker: string) {
         halted: c.halted,
         eventsKey: c.events.map((e) => e.id).join('|'),
         slotsKey: c.slots.map((sl) => `${sl.stage}${sl.paused ? '*' : ''}`).join('|'),
+        upgradesKey: c.upgrades.map((sl) => `${sl.stage}${sl.paused ? '*' : ''}`).join('|'),
         tier: c.tier,
         expansionStage: c.expansion?.stage ?? null,
         expansionPaused: c.expansion?.paused ?? false,

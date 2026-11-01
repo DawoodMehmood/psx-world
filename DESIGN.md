@@ -340,6 +340,14 @@ Each step ends with tests and a build.
 - **New high** now raises a pillar of gold light as well as the golden crown. The other event effects are unchanged; the per-sector hard-move effects (§6) belong to step 5.
 - **Phone HUD:** the site-news line from step 3 made the player bar swallow the map at 320px. On phones the caption now takes the full width under the day pill and picker, capped at four lines, and the news shows two items plus a count. Checked at 375px and 320px.
 
+### Step 5 notes (cement built; banks, oil and tech still to do)
+
+- **Upgrade projects are now on the site plan.** `CompanyState.upgrades` holds levels 3, 6 and 10 as EMPTY, FRAME (scaffolding up while fitted; paused and tarped while wound down) or COMPLETE, and `UpgradeSite` draws the scaffold and crew.
+- **Cement upgrades:** level 3 raises every silo (walkway ring) and adds a second feeder belt over the quarry; level 6 makes the preheaters taller with a taller stack and a second cyclone on the back-left edge; level 10 widens the quarry with two working excavators and extends the hall.
+- **Cement hard moves:** up = confetti and the kilns burn hot while it lasts (`motion.heat`); down = sirens and a low brown dust cloud instead of smoke. Other sectors still use the shared effects.
+- **Visibility caveat:** the hall extension stands behind the tall preheaters, so it hardly shows from the fixed camera; the level-10 scaffold goes on the quarry, where the work is visible. Worth checking on the live site and moving if it reads badly.
+- Still open: banks, oil and tech upgrades and hard-move effects, and deriving `scale` from size.
+
 ## 12. Items to tune by eye, and open questions
 
 Starting numbers to tune: all band thresholds, weights (0.7/0.3 ceiling; 0.35/0.25/0.40 health; 0.7/0.3 activity), the 60-day and 5-year windows, build durations, hysteresis margins, the level at which footprint steps.

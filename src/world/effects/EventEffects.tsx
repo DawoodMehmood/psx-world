@@ -1,9 +1,11 @@
-import { useLayoutEffect, useMemo, useRef } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { AdditiveBlending, Color, CylinderGeometry, MeshBasicMaterial, MeshStandardMaterial, Object3D, RingGeometry, TorusGeometry, type Group, type InstancedMesh, type Mesh } from 'three';
+import type { Archetype } from '../../config/companies';
 import { createRng } from '../../engine/rng';
 import type { EventType, MarketEvent } from '../../engine/types';
 import { Ball, Box, Cyl, GEO, mat } from '../kit';
+import { useMotion } from '../motion';
 
 /** Effects are placed in coordinates centered on the site; `size` is the site's side. */
 type EffectProps = { magnitude: number; top: number; accent: string; seed: number; size: number };
@@ -19,15 +21,23 @@ const EFFECTS: Partial<Record<EventType, (p: EffectProps) => React.JSX.Element>>
 };
 
 /**
+ * What a hard move looks like in each sector (DESIGN.md §6); sectors not listed
+ * here keep the shared effects above until their art is done.
+ */
+const SECTOR_EFFECTS: Partial<Record<Archetype, Partial<Record<EventType, (p: EffectProps) => React.JSX.Element>>>> = {
+  cement: { BIG_UP: KilnCheer, BIG_DOWN: DustStorm },
+};
+
+/**
  * Temporary effects for the company's active events (SPEC §10). Each one is
  * mounted while its event is active and sized by the event's magnitude.
  * HALT has no entry here: the plot draws barrier tape and freezes instead.
  */
-export function EventEffects({ events, top, accent, size }: { events: MarketEvent[]; top: number; accent: string; size: number }) {
+export function EventEffects({ events, top, accent, size, archetype }: { events: MarketEvent[]; top: number; accent: string; size: number; archetype?: Archetype }) {
   return (
     <>
       {events.map((e) => {
-        const Effect = EFFECTS[e.type];
+        const Effect = (archetype && SECTOR_EFFECTS[archetype]?.[e.type]) || EFFECTS[e.type];
         return Effect ? <Effect key={e.id} magnitude={e.magnitude} top={top} accent={accent} seed={e.startIndex} size={size} /> : null;
       })}
     </>
@@ -94,12 +104,12 @@ function Fireworks({ magnitude, top, seed }: EffectProps) {
 }
 
 /** Big drop: a warning siren on a post and dark smoke rising from the plant. */
-function Alarm({ magnitude, top, size }: EffectProps) {
+function Alarm({ magnitude, top, size, smoke = true }: EffectProps & { smoke?: boolean }) {
   const edge = size / 2 - 0.6;
   const lamp = useMemo(() => new MeshStandardMaterial({ color: '#ff3b2f', emissive: '#ff2a1a', emissiveIntensity: 1, flatShading: true }), []);
   const beams = useRef<Group>(null);
   const puffs = useRef<(Mesh | null)[]>([]);
-  const n = Math.round(3 + magnitude * 4);
+  const n = smoke ? Math.round(3 + magnitude * 4) : 0;
   useFrame(({ clock }) => {
     const t = clock.elapsedTime;
     lamp.emissiveIntensity = Math.sin(t * 10) > 0 ? 1.6 : 0.2;
@@ -281,6 +291,64 @@ function CoinShower({ magnitude, top, accent, seed, size }: EffectProps) {
         >
           <Cyl r={0.2} h={0.06} rot={[Math.PI / 2, 0, 0]} color={i % 3 === 0 ? accent : '#ffcf3a'} glow={0.5} center shadow={false} />
         </group>
+      ))}
+    </>
+  );
+}
+
+/** Cement, big move up: the usual confetti, and the kilns burn hot while the cheer lasts. */
+function KilnCheer(p: EffectProps) {
+  const motion = useMotion();
+  useFrame((_, dt) => {
+    motion.heat += (1 - motion.heat) * Math.min(1, dt * 3);
+  });
+  useEffect(
+    () => () => {
+      motion.heat = 0;
+    },
+    [motion],
+  );
+  return <Fireworks {...p} />;
+}
+
+/** Cement, big move down: the sirens, and a low brown cloud of dust rolling across the yard instead of smoke. */
+function DustStorm(p: EffectProps) {
+  return (
+    <>
+      <Alarm {...p} smoke={false} />
+      <DustCloud {...p} />
+    </>
+  );
+}
+
+function DustCloud({ magnitude, size, seed }: EffectProps) {
+  const n = Math.round(7 + magnitude * 6);
+  const puffs = useRef<(Mesh | null)[]>([]);
+  const spots = useMemo(() => {
+    const rng = createRng(seed + 23);
+    return Array.from({ length: n }, () => ({ z: (rng() - 0.5) * (size - 3), phase: rng(), lift: 0.4 + rng() * 1.8, r: 0.7 + rng() * 0.8 }));
+  }, [n, seed, size]);
+  useFrame(({ clock }) => {
+    const span = size - 1;
+    puffs.current.forEach((m, i) => {
+      if (!m) return;
+      const { z, phase, lift, r } = spots[i];
+      const p = (clock.elapsedTime * 0.12 + phase) % 1;
+      m.position.set(-span / 2 + p * span, lift + Math.sin(clock.elapsedTime * 1.3 + i) * 0.15, z);
+      m.scale.setScalar(r * (0.5 + Math.sin(Math.PI * p) * 0.9));
+    });
+  });
+  return (
+    <>
+      {spots.map((_, i) => (
+        <mesh
+          key={i}
+          ref={(el) => {
+            puffs.current[i] = el;
+          }}
+          geometry={GEO.blob}
+          material={mat('#c8b48e')}
+        />
       ))}
     </>
   );

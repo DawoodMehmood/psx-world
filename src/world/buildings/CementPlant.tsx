@@ -1,6 +1,6 @@
 import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { MeshStandardMaterial, Quaternion, Vector3, type Mesh } from 'three';
+import { MeshStandardMaterial, Quaternion, Vector3, type Group, type Mesh } from 'three';
 import { SITE_TIERS } from '../../config/companies';
 import { HEALTH, type SlotState } from '../../engine/types';
 import { MixerTruck, Workers, type Lane } from '../agents';
@@ -9,6 +9,7 @@ import { Static } from '../Static';
 import { agentCount, useMotion } from '../motion';
 import { BAY_Z, BayLines, BayVehicles, BUILD_W, ClosedBay,  DOCK_X, isBuilt, openBays, runningCount, Slots, Weeds, type SlotDesign } from './shared';
 import { crewMax } from '../../engine/visual';
+import { UpgradeSite } from '../construction/UpgradeSite';
 import type { ArchetypeProps } from './types';
 
 /*
@@ -23,6 +24,12 @@ import type { ArchetypeProps } from './types';
  *   between rows     clinker stockpiles (tier 2) and the clinker dome (tier 3), both low,
  *                    clear of the tall silos so nothing hides them
  */
+
+/** The upgrades, in ladder order (levels 3, 6 and 10), as they show on a cement site. */
+const RAISED_SILOS = 0;
+const TALL_KILNS = 1;
+const WIDE_YARD = 2;
+const done = (p: Pick<ArchetypeProps, 'upgrades'>, i: number) => p.upgrades[i]?.stage === 'COMPLETE';
 
 const SILO_X = 10.6;
 const SILO_R = 0.6;
@@ -133,14 +140,22 @@ const SLOTS: SlotDesign[] = [
 ];
 
 export function CementPlant(props: ArchetypeProps) {
-  const { health, tier, slots } = props;
+  const { health, tier, slots, upgrades } = props;
   const h = HEALTH.indexOf(health);
+  const wide = done(props, WIDE_YARD);
   return (
     <group>
-      <Hall h={h} />
+      <Hall h={h} extended={wide} />
       <KilnLine line={0} {...props} />
-      <Quarry />
+      <Quarry wide={wide} />
       <Conveyor from={[3.6, 0.3, 5.2]} to={[1.9, 2.6, 4.0]} />
+      {done(props, RAISED_SILOS) && <Conveyor from={[6.4, 0.3, 5.5]} to={[3.7, 0.3, 5.2]} />}
+      {wide && <Excavators />}
+
+      {/* upgrades being fitted: scaffolding round the silos, the first preheater and the quarry (the hall's extension stands behind the tall parts, so the scaffold goes where the work shows) */}
+      <UpgradeSite state={upgrades[RAISED_SILOS]} at={[SILO_X, 2.2]} w={1.9} d={3.6} h={4.2} />
+      <UpgradeSite state={upgrades[TALL_KILNS]} at={[PREHEATER_X, KILN_Z[0]]} w={2.2} d={2.2} h={4.6} />
+      <UpgradeSite state={upgrades[WIDE_YARD]} at={[5.6, 5.3]} w={4.8} d={1.9} h={1.5} />
 
       {/* the original two silos and bays */}
       {[0, 1].map((i) => (
@@ -166,7 +181,7 @@ export function CementPlant(props: ArchetypeProps) {
 }
 
 /** The hall along the back edge, with boarded-up windows when struggling. */
-function Hall({ h }: { h: number }) {
+function Hall({ h, extended }: { h: number; extended: boolean }) {
   const windows = (
     <>
       <Box size={[0.5, 0.45, 0.04]} color={h <= 0 ? '#5a554e' : '#cfe9f7'} shadow={false} />
@@ -196,6 +211,20 @@ function Hall({ h }: { h: number }) {
           {windows}
         </group>
       ))}
+      {/* the hall's extension (the last upgrade): another bay of the same hall with its own roof ridge and windows */}
+      {extended && (
+        <>
+          <Box size={[2.2, 2.2, 2.0]} at={[2.9, 0, 0]} color="#efe7d6" rounded={0.08} />
+          <group position={[2.9, 2.2, 0]} rotation={[0, Math.PI / 2, 0]}>
+            <Roof w={2.2} d={2.4} h={0.8} color="#9b9284" />
+          </group>
+          {[2.3, 3.5].map((x) => (
+            <group key={x} position={[x, 1.5, 1.01]}>
+              {windows}
+            </group>
+          ))}
+        </>
+      )}
       </Static>
     </group>
   );
@@ -206,11 +235,13 @@ function Hall({ h }: { h: number }) {
  * as a pennant (thriving), cones across the bay when it is closed, and
  * patches on the silo (struggling).
  */
-function SiloBay({ bay, scale, accent, health, slots }: ArchetypeProps & { bay: number }) {
+function SiloBay({ bay, scale, accent, health, slots, upgrades }: ArchetypeProps & { bay: number }) {
   const h = HEALTH.indexOf(health);
   const z = BAY_Z[bay];
   const closed = !openBays(h, builtBays(slots)).includes(bay);
-  const siloH = 3 + scale * 1.5;
+  // the first upgrade raises every silo and rings it with a walkway
+  const raised = done({ upgrades }, RAISED_SILOS);
+  const siloH = 3 + scale * 1.5 + (raised ? 1.2 : 0);
   const spoutY = 1.75;
   const armFrom = SILO_X + SILO_R - 0.1;
   const armTo = DOCK_X - 0.1;
@@ -219,6 +250,7 @@ function SiloBay({ bay, scale, accent, health, slots }: ArchetypeProps & { bay: 
       <Cyl r={SILO_R} h={siloH} at={[SILO_X, 0, z]} color="#e6e1d6" />
       <Cyl r={SILO_R + 0.02} h={0.2} at={[SILO_X, siloH * 0.78, z]} color={h <= 0 ? '#9a948a' : accent} />
       <Cone r={SILO_R} h={0.4} at={[SILO_X, siloH, z]} color="#cfc8ba" />
+      {raised && <Cyl r={SILO_R + 0.14} h={0.07} at={[SILO_X, siloH - 0.55, z]} color="#8a8174" />}
       {/* spout arm reaching over the bay */}
       <Box size={[armTo - armFrom, 0.14, 0.2]} at={[(armFrom + armTo) / 2, spoutY, z]} color="#8a8174" />
       <Cyl r={0.08} h={0.4} at={[armTo, spoutY - 0.4, z]} color="#5f584f" low />
@@ -257,8 +289,9 @@ function LoadingWing({ bays, ...p }: ArchetypeProps & { bays: number[] }) {
  * toward the front-right, burner hood at the front end. A mothballed line has
  * a cold burner, no smoke, and its drum wrapped in a tarp.
  */
-function KilnLine({ line, scale, accent, health, slots, bare = false }: ArchetypeProps & { line: number; bare?: boolean }) {
-  const towerH = 4 + scale * 1.5;
+function KilnLine({ line, scale, accent, health, slots, upgrades, bare = false }: ArchetypeProps & { line: number; bare?: boolean }) {
+  const tall = !bare && done({ upgrades }, TALL_KILNS);
+  const towerH = 4 + scale * 1.5 + (tall ? 0.9 : 0);
   const y = 1.15;
   const z = KILN_Z[line];
   const mothballed = !bare && line >= runningCount(HEALTH.indexOf(health), builtKilns(slots));
@@ -269,7 +302,7 @@ function KilnLine({ line, scale, accent, health, slots, bare = false }: Archetyp
         <Kiln at={[0, y, 0]} length={KILN_LEN} r={0.5} piers={[-1.6, 0, 1.6]} color={bare ? '#c9c2b6' : accent} bare={bare} wrapped={mothballed} />
         {!bare && <KilnGlow at={[KILN_LEN / 2 + 0.25, y - 0.55, 0]} cold={mothballed} />}
       </group>
-      <Preheater z={z} h={bare ? towerH * 0.45 : towerH} accent={accent} stack={!bare} smoke={!bare && !mothballed} />
+      <Preheater z={z} h={bare ? towerH * 0.45 : towerH} accent={accent} stack={!bare} smoke={!bare && !mothballed} tall={tall} />
       {mothballed && (
         // chained shut: a rope with a padlock board across the front of the line
         <group position={[burnerX + 0.35, 0, z]} rotation={[0, Math.PI / 2, 0]}>
@@ -287,8 +320,9 @@ function KilnLine({ line, scale, accent, health, slots, bare = false }: Archetyp
   );
 }
 
-function Preheater({ z, h, accent, stack, smoke }: { z: number; h: number; accent: string; stack: boolean; smoke: boolean }) {
+function Preheater({ z, h, accent, stack, smoke, tall = false }: { z: number; h: number; accent: string; stack: boolean; smoke: boolean; tall?: boolean }) {
   const x = PREHEATER_X;
+  const stackH = tall ? 2.2 : 1.4;
   return (
     <group>
       <Static>
@@ -298,12 +332,19 @@ function Preheater({ z, h, accent, stack, smoke }: { z: number; h: number; accen
         ))}
         {stack && (
           <>
-            <Cyl r={0.24} h={1.4} at={[x - 0.3, h, z - 0.3]} color="#b9b1a3" />
-            <Cyl r={0.26} h={0.18} at={[x - 0.3, h + 1.24, z - 0.3]} color={smoke ? accent : '#8a8174'} />
+            <Cyl r={0.24} h={stackH} at={[x - 0.3, h, z - 0.3]} color="#b9b1a3" />
+            <Cyl r={0.26} h={0.18} at={[x - 0.3, h + stackH - 0.16, z - 0.3]} color={smoke ? accent : '#8a8174'} />
+          </>
+        )}
+        {/* the upgrade adds a second cyclone on the back-left edge, where a tall part hides nothing */}
+        {tall && (
+          <>
+            <Cyl r={0.34} h={h * 0.78} at={[x - 0.95, 0, z]} color="#d8d0c0" />
+            <Cone r={0.34} h={0.5} at={[x - 0.95, h * 0.78, z]} color="#8a8174" />
           </>
         )}
       </Static>
-      {stack && smoke && <Smoke at={[x - 0.3, h + 1.42, z - 0.3]} />}
+      {stack && smoke && <Smoke at={[x - 0.3, h + stackH + 0.02, z - 0.3]} />}
     </group>
   );
 }
@@ -349,7 +390,7 @@ function KilnGlow({ at, cold = false }: { at: Vec3; cold?: boolean }) {
   const motion = useMotion();
   const glow = useMemo(() => new MeshStandardMaterial({ color: '#ff7a1a', emissive: '#ff5a00', emissiveIntensity: 0.6, flatShading: true }), []);
   useFrame(() => {
-    glow.emissiveIntensity = motion.halted ? 0.05 : 0.25 + motion.intensity * 1.6;
+    glow.emissiveIntensity = motion.halted ? 0.05 : 0.25 + motion.intensity * 1.6 + motion.heat * 2;
   });
   return (
     <group position={at}>
@@ -374,21 +415,56 @@ function ClinkerDome() {
   );
 }
 
-/** The quarry pit at the front of the first row, where the conveyor starts. */
-function Quarry() {
+/** The quarry pit at the front of the first row, where the conveyor starts. The last upgrade widens it. */
+function Quarry({ wide = false }: { wide?: boolean }) {
+  const rocks: Vec3[] = [
+    [4.2, 5.3, 0.42],
+    [5.1, 5.0, 0.35],
+    [5.6, 5.5, 0.3],
+    ...(wide ? ([[6.4, 5.4, 0.38], [6.9, 5.0, 0.3], [7.3, 5.6, 0.34]] as Vec3[]) : []),
+  ];
   return (
     <Static>
-      <Box size={[2.6, 0.06, 1.3]} at={[4.6, 0, 5.25]} color="#9c8466" shadow={false} />
-      {(
-        [
-          [4.2, 5.3, 0.42],
-          [5.1, 5.0, 0.35],
-          [5.6, 5.5, 0.3],
-        ] as Vec3[]
-      ).map(([x, z, r]) => (
+      <Box size={wide ? [4.6, 0.06, 1.5] : [2.6, 0.06, 1.3]} at={wide ? [5.6, 0, 5.3] : [4.6, 0, 5.25]} color="#9c8466" shadow={false} />
+      {rocks.map(([x, z, r]) => (
         <mesh key={x + z} geometry={GEO.blob} material={mat('#b49a78')} position={[x, r * 0.6, z]} scale={[r * 1.3, r, r * 1.2]} castShadow />
       ))}
     </Static>
+  );
+}
+
+/** Two diggers working the widened quarry: the boom rises and dips with the plot's clock, faster when busy. */
+function Excavators() {
+  return (
+    <>
+      <Excavator at={[6.6, 0.03, 4.9]} phase={0} />
+      <Excavator at={[7.5, 0.03, 5.6]} phase={2.1} />
+    </>
+  );
+}
+
+function Excavator({ at, phase }: { at: Vec3; phase: number }) {
+  const motion = useMotion();
+  const body = useRef<Group>(null);
+  const boom = useRef<Group>(null);
+  useFrame(() => {
+    if (!body.current || !boom.current) return;
+    const t = motion.t * 0.9 + phase;
+    body.current.rotation.y = Math.sin(t * 0.5) * 0.9;
+    boom.current.rotation.z = -0.55 + Math.sin(t) * 0.35;
+  });
+  return (
+    <group position={at}>
+      <Box size={[0.95, 0.2, 0.5]} at={[0, 0, 0]} color="#3a3a3a" />
+      <group ref={body} position={[0, 0.2, 0]}>
+        <Box size={[0.6, 0.32, 0.5]} color="#f2b632" rounded={0.04} />
+        <Box size={[0.26, 0.28, 0.3]} at={[-0.12, 0.32, 0]} color="#cfe9f7" />
+        <group ref={boom} position={[0.3, 0.22, 0]}>
+          <Box size={[0.8, 0.09, 0.1]} at={[0.4, 0, 0]} color="#f2b632" />
+          <Box size={[0.2, 0.17, 0.22]} at={[0.8, -0.1, 0]} color="#6d675f" />
+        </group>
+      </group>
+    </group>
   );
 }
 

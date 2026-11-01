@@ -34,6 +34,7 @@ export function CompanyPlot({ company, index }: { company: CompanyDefinition; in
   // Lists are rebuilt only when their keys change, so the plot doesn't re-render every tick.
   const events = useMemo(() => effectiveCompany(useSimStore.getState(), company.ticker).events, [company.ticker, visual.eventsKey]);
   const slots = useMemo(() => effectiveCompany(useSimStore.getState(), company.ticker).slots, [company.ticker, visual.slotsKey]);
+  const upgrades = useMemo(() => effectiveCompany(useSimStore.getState(), company.ticker).upgrades, [company.ticker, visual.upgradesKey]);
   const depth = siteTier(company, visual.tier).depth;
   const nextDepth = siteTier(company, visual.tier + 1).depth;
   const grading = visual.expansionStage === 'FOUNDATION' || visual.expansionStage === 'FRAME';
@@ -60,8 +61,8 @@ export function CompanyPlot({ company, index }: { company: CompanyDefinition; in
   });
 
   const buildings = useMemo(
-    () => <Buildings scale={company.scale} accent={company.accent} seed={seed} health={visual.health} tier={visual.tier} slots={slots} />,
-    [Buildings, company.scale, company.accent, seed, visual.health, visual.tier, slots],
+    () => <Buildings scale={company.scale} accent={company.accent} seed={seed} health={visual.health} tier={visual.tier} slots={slots} upgrades={upgrades} />,
+    [Buildings, company.scale, company.accent, seed, visual.health, visual.tier, slots, upgrades],
   );
   const top = archetypeHeight(company.archetype, company.scale);
 
@@ -92,7 +93,7 @@ export function CompanyPlot({ company, index }: { company: CompanyDefinition; in
           <group position={[0, 0.18, 0]}>
             {buildings}
             <group position={[LOT_SIZE / 2, 0, depth / 2]}>
-              <EventEffects events={events} top={top} accent={company.accent} size={Math.min(depth, LOT_SIZE)} />
+              <EventEffects events={events} top={top} accent={company.accent} size={Math.min(depth, LOT_SIZE)} archetype={company.archetype} />
               {visual.halted && <HaltTape w={LOT_SIZE} d={depth} />}
             </group>
           </group>

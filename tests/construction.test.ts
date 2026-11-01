@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { replayConstruction, settled, siteOf, stepConstruction, type Construction } from '../src/engine/construction';
-import { FOOTPRINT_LEVELS, footprintTier, kindOf, LEVEL_KINDS, MAX_LEVEL, SLOT_COUNT, slotIndex, slotsBuilt } from '../src/engine/ladder';
+import { FOOTPRINT_LEVELS, footprintTier, kindOf, LEVEL_KINDS, MAX_LEVEL, SLOT_COUNT, slotIndex, slotsBuilt, UPGRADE_LEVELS, upgradeIndex } from '../src/engine/ladder';
 import { createRng } from '../src/engine/rng';
 
 const LETTER: Record<string, string> = { EMPTY: 'E', STAKED: 'S', FOUNDATION: 'F', FRAME: 'R', COMPLETE: 'C' };
@@ -36,6 +36,11 @@ describe('ladder', () => {
     expect(Array.from({ length: 10 }, (_, i) => footprintTier(i + 1))).toEqual([1, 1, 1, 2, 2, 2, 3, 3, 3, 3]);
   });
 
+  it('has upgrades at levels 3, 6 and 10', () => {
+    expect(UPGRADE_LEVELS).toEqual([3, 6, 10]);
+    expect(UPGRADE_LEVELS.map(upgradeIndex)).toEqual([0, 1, 2]);
+  });
+
   it('builds pads in order: each building level takes the next one', () => {
     expect(Array.from({ length: 10 }, (_, i) => slotsBuilt(i + 1))).toEqual([0, 1, 1, 2, 3, 3, 4, 5, 6, 6]);
     expect([2, 4, 5, 7, 8, 9].map(slotIndex)).toEqual([0, 1, 2, 3, 4, 5]);
@@ -60,12 +65,35 @@ describe('construction timeline', () => {
     ]);
   });
 
-  it('an upgrade takes three days and changes nothing on the site plan yet', () => {
-    const days = run(2, 3, 3);
-    expect(new Set(days).size).toBe(1);
-    let c = settled(2);
-    for (let i = 0; i < 4; i++) c = stepConstruction(c, 3);
-    expect(c).toEqual(settled(3));
+  it('an upgrade takes three days: scaffolding goes up on the first, comes down when it is finished, and the pads do not change', () => {
+    const states = (from: number, target: number, steps: number) => {
+      let c = settled(from);
+      return Array.from({ length: steps + 1 }, () => (c = stepConstruction(c, target))).map((x) => siteOf(x).upgrades[0]);
+    };
+    expect(states(2, 3, 3)).toEqual([
+      { stage: 'FRAME', paused: false },
+      { stage: 'FRAME', paused: false },
+      { stage: 'FRAME', paused: false },
+      { stage: 'COMPLETE', paused: false },
+    ]);
+    expect(new Set(run(2, 3, 3)).size).toBe(1);
+  });
+
+  it('winds an upgrade down under a tarp, then takes it away', () => {
+    let c = settled(3);
+    const seen = [0, 1, 2].map(() => siteOf((c = stepConstruction(c, 2))).upgrades[0]);
+    expect(seen).toEqual([
+      { stage: 'FRAME', paused: true },
+      { stage: 'FRAME', paused: true },
+      { stage: 'EMPTY', paused: false },
+    ]);
+    expect(c).toEqual(settled(2));
+  });
+
+  it('shows every upgrade at or below the built level as finished', () => {
+    expect(siteOf(settled(1)).upgrades.map((u) => u.stage)).toEqual(['EMPTY', 'EMPTY', 'EMPTY']);
+    expect(siteOf(settled(6)).upgrades.map((u) => u.stage)).toEqual(['COMPLETE', 'COMPLETE', 'EMPTY']);
+    expect(siteOf(settled(10)).upgrades.map((u) => u.stage)).toEqual(['COMPLETE', 'COMPLETE', 'COMPLETE']);
   });
 
   it('winds a building down under a tarp, then shrinks the site back', () => {

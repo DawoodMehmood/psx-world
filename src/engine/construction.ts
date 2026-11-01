@@ -1,4 +1,4 @@
-import { FOOTPRINT_LEVELS, footprintTier, kindOf, SLOT_COUNT, slotIndex, slotsBuilt } from './ladder';
+import { FOOTPRINT_LEVELS, footprintTier, kindOf, SLOT_COUNT, slotIndex, slotsBuilt, UPGRADE_LEVELS, upgradeIndex } from './ladder';
 import type { SlotStage, SlotState } from './types';
 
 /*
@@ -86,9 +86,11 @@ export interface Site {
   slots: SlotState[];
   /** The site enlargement underway, if any. */
   expansion: SlotState | null;
+  /** The upgrades: finished, being fitted, or being wound down. */
+  upgrades: SlotState[];
 }
 
-/** The site's visible state: finished pads, the pad or enlargement being worked on, and the tier. Wind-downs show paused (tarped). */
+/** The site's visible state: finished pads and upgrades, the one being worked on, and the tier. Wind-downs show paused (tarped). */
 export function siteOf({ done, project }: Construction): Site {
   const built = slotsBuilt(done);
   const slots: SlotState[] = Array.from({ length: SLOT_COUNT }, (_, i) => ({ stage: i < built ? 'COMPLETE' : 'EMPTY', paused: false }));
@@ -111,8 +113,8 @@ export function siteOf({ done, project }: Construction): Site {
         if (!down) expansion = { stage: project.q / e < 0.5 - EPS ? 'STAKED' : 'FOUNDATION', paused: false };
       }
     }
-  } else if (project) {
-    // An upgrade changes nothing on the site plan yet; its art arrives with the sector ladders.
   }
-  return { tier, slots, expansion };
+  const upgrades: SlotState[] = UPGRADE_LEVELS.map((level) => ({ stage: done >= level ? 'COMPLETE' : 'EMPTY', paused: false }));
+  if (project && kindOf(project.level) === 'UPGRADE') upgrades[upgradeIndex(project.level)] = { stage: 'FRAME', paused: project.dir === 'DOWN' };
+  return { tier, slots, expansion, upgrades };
 }

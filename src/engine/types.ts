@@ -90,6 +90,11 @@ export interface CompanyState {
   slots: SlotState[];
   /** The site enlargement underway, if any. */
   expansion: SlotState | null;
+  /**
+   * The upgrades to what already stands, in ladder order: EMPTY until done,
+   * FRAME while being fitted (scaffolding up) or wound down (paused, tarped), then COMPLETE.
+   */
+  upgrades: SlotState[];
 }
 
 export interface Clock {

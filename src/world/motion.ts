@@ -19,11 +19,13 @@ export interface PlotMotion {
   jitter: number;
   /** −1…+1: the light pool, sunlit or shaded (Direction). */
   pool: number;
+  /** 0–1: extra kiln glow while a big move up is celebrated (cement). */
+  heat: number;
   halted: boolean;
 }
 
 export function createMotion(): PlotMotion {
-  return { t: 0, intensity: 0.42, speed: 1, jitter: 0, pool: 0, halted: false };
+  return { t: 0, intensity: 0.42, speed: 1, jitter: 0, pool: 0, heat: 0, halted: false };
 }
 
 const fallback = createMotion();

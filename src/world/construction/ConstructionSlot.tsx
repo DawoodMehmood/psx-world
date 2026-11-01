@@ -128,7 +128,7 @@ function rebar(w: number): number[] {
 }
 
 /** Poles at the corners and along the visible faces, with rails at each level. */
-function Scaffold({ w, d, h }: { w: number; d: number; h: number }) {
+export function Scaffold({ w, d, h }: { w: number; d: number; h: number }) {
   const poles: [number, number][] = [];
   const nx = Math.max(1, Math.round(w / 1.1));
   for (let i = 0; i <= nx; i++) {
