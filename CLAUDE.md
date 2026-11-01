@@ -7,3 +7,13 @@ Read `README.md` and `SPEC.md` first.
 - Deployed to GitHub Pages from `main` and `claude/**` branches via `.github/workflows/deploy.yml`. Site: https://dawoodmehmood.github.io/psx-world/
 - `vite.config.ts` sets `base: '/psx-world/'` for Pages; keep it, and use relative or base-aware asset paths.
 - The live site shows whichever branch deployed last.
+
+## Syncing across devices (laptop and phone)
+
+The user switches between laptop and cloud sessions without warning, so GitHub `main` must always hold the latest work and nothing may sit only on one device.
+
+- **Session start:** run `git fetch`, then merge any newer `main` and unmerged `claude/**` branches into the working branch. Tell the user what changed since last time.
+- **After each completed change:** run `npm test` and `npm run build`; if both pass, commit and push, and get the work into `main` (push to `main` directly, or fast-forward `main` from the `claude/` branch). Each push redeploys the site.
+- **Unfinished or failing work:** still commit and push, but to a `claude/` branch, never to `main`.
+- **Never leave uncommitted changes** at the end of a turn.
+- If pushing to `main` is blocked, say so and leave the work on the `claude/` branch.
