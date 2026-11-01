@@ -1,6 +1,5 @@
 import {
   ACTIVITY_RULE,
-  CONSTRUCTION_RULES,
   DIRECTION_RULE,
   EVENT_RULES,
   HEALTH_RULE,
@@ -8,12 +7,12 @@ import {
   SWING_SMOOTHING,
   VOLATILITY_RULE,
 } from '../config/thresholds';
+import { settled, siteOf, stepConstruction, type Construction } from './construction';
 import { classify, LevelTracker, rawLevel } from './levels';
 import {
   ACTIVITY,
   DIRECTION,
   HEALTH,
-  SLOT_STAGES,
   TICKS_PER_DAY,
   VOLATILITY,
   type CompanyState,
@@ -21,7 +20,6 @@ import {
   type History,
   type MarketEvent,
   type Observation,
-  type SlotState,
 } from './types';
 
 /** What the engine needs to know about a company. */
@@ -30,10 +28,10 @@ export interface EngineCompany {
   sectorId: string;
   /** 0–1 relative size; scales event magnitude. */
   scale: number;
-  /** Site tier on day 1. */
-  startTier: number;
-  /** Expansion slots each tier adds; its length is the number of tiers. */
-  slotsPerTier: number[];
+  /** Shares in issue, for market cap. */
+  sharesOutstanding: number;
+  /** Smallest and largest cap in the whole listed sector, same unit as the cap history. */
+  sectorCapRange: { low: number; high: number };
 }
 
 const WINDOW = 20;
@@ -64,10 +62,8 @@ export class CompanyTracker {
 
   private events: MarketEvent[] = [];
   private lastFired = new Map<EventType, number>();
-  private tier: number;
-  private slots: SlotState[];
-  private expansion: SlotState | null = null;
-  private strongStreak = 0;
+  private construction: Construction;
+  private size = { levelTarget: 1, ceiling: 1, cycle: null as number | null };
 
   constructor(
     readonly company: EngineCompany,
@@ -77,14 +73,16 @@ export class CompanyTracker {
     this.volumes = [...history.volumes];
     this.prevClose = this.closes[this.closes.length - 1];
     this.price = this.prevClose;
-    this.tier = company.startTier;
-    // Starting on a bigger site means everything on the smaller tiers is already built.
-    const builtAlready = sum(company.slotsPerTier.slice(0, this.tier - 1));
-    this.slots = Array.from({ length: sum(company.slotsPerTier) }, (_, i) => ({ stage: i < builtAlready ? 'COMPLETE' : 'EMPTY', paused: false }));
+    this.construction = settled(1);
   }
 
   get ticker() {
     return this.company.ticker;
+  }
+
+  /** The latest price: after `closeDay`, the day's close. */
+  get lastPrice() {
+    return this.price;
   }
 
   /** % change over the last 20 closes (including today's once the day is done). */
@@ -151,39 +149,16 @@ export class CompanyTracker {
     this.healthIdx = this.healthIdx === null ? rawLevel(score, HEALTH_RULE) : classify(score, HEALTH_RULE, this.healthIdx);
   }
 
-  /**
-   * One project at a time (SPEC §8): the current tier's slots in order, then a
-   * site expansion to the next tier. The first project waits for a run of
-   * strong days; later ones follow the next day while health stays strong.
-   */
-  advanceConstruction(): void {
-    const strong = (this.healthIdx ?? 0) >= HEALTH.indexOf('STRONG');
-    this.strongStreak = strong ? this.strongStreak + 1 : 0;
-    const project = this.currentProject();
-    if (!project) return;
-    if (project.stage === 'EMPTY') {
-      if (this.strongStreak >= CONSTRUCTION_RULES.startAfterStrongDays) project.stage = 'STAKED';
-      return;
-    }
-    if (!strong) {
-      project.paused = true;
-      return;
-    }
-    project.paused = false;
-    project.stage = SLOT_STAGES[SLOT_STAGES.indexOf(project.stage) + 1];
-    if (project === this.expansion && project.stage === 'COMPLETE') {
-      this.tier++;
-      this.expansion = null;
-    }
+  /** Start from a finished site at the level the data calls for on day 0. */
+  startAt(size: { levelTarget: number; ceiling: number; cycle: number | null }): void {
+    this.size = size;
+    this.construction = settled(size.levelTarget);
   }
 
-  private currentProject(): SlotState | null {
-    const unlocked = sum(this.company.slotsPerTier.slice(0, this.tier));
-    const slot = this.slots.slice(0, unlocked).find((s) => s.stage !== 'COMPLETE');
-    if (slot) return slot;
-    if (this.tier >= this.company.slotsPerTier.length) return null;
-    this.expansion ??= { stage: 'EMPTY', paused: false };
-    return this.expansion;
+  /** End of day: take the level the data calls for and work one day towards it (DESIGN.md §5). */
+  advanceConstruction(size: { levelTarget: number; ceiling: number; cycle: number | null }): void {
+    this.size = size;
+    this.construction = stepConstruction(this.construction, size.levelTarget);
   }
 
   get dayChangePct(): number {
@@ -221,9 +196,11 @@ export class CompanyTracker {
       volatility: VOLATILITY[this.volatility.level],
       halted: this.halted,
       events: this.events.filter((e) => e.startIndex <= index).map((e) => ({ ...e })),
-      tier: this.tier,
-      slots: this.slots.map((s) => ({ ...s })),
-      expansion: this.expansion && this.expansion.stage !== 'EMPTY' ? { ...this.expansion } : null,
+      level: this.construction.done,
+      levelTarget: this.size.levelTarget,
+      ceiling: this.size.ceiling,
+      cycle: this.size.cycle,
+      ...siteOf(this.construction),
     };
   }
 }

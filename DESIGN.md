@@ -323,6 +323,15 @@ Each step ends with tests and a build.
 5. **Per-sector ladders.** Build the level steps for banks, oil, cement, tech, each with its Health closure and hard-move effects.
 6. **PsxSource.** Implement the adapter once the data feed is settled.
 
+### Step 3 notes (built)
+
+- The ladder, the construction timeline and the size series are in `engine/ladder.ts`, `engine/construction.ts` and `engine/market.ts`. `startTier` is gone; pads, tier and expansion on `CompanyState` now come from the timeline, so the renderer is unchanged.
+- **Upgrade levels (3, 6, 10) have no art yet.** Their projects run on the timeline and change nothing on screen until step 5.
+- **Demo clock.** With the real rules (60-day smoothing, 5-year range ratio 4) 40 trading days barely move any company. The two demo scenarios override this (`size` on the scenario: 12-day smoothing, 3-day dwell, 1.3× range) so growth and decline show in weeks. Real data uses neither override.
+- A wind-down shows as the building stepping back through its stages under a tarp (paused); a footprint level's land reverts once its building is gone.
+- The demo bar adds a "Sites:" line computed from the snapshots, so the captions no longer describe construction by hand.
+- `scale` (tower height and props) is still the placeholder in `companies.ts`; deriving it from size comes with the art in step 5.
+
 ## 12. Items to tune by eye, and open questions
 
 Starting numbers to tune: all band thresholds, weights (0.7/0.3 ceiling; 0.35/0.25/0.40 health; 0.7/0.3 activity), the 60-day and 5-year windows, build durations, hysteresis margins, the level at which footprint steps.

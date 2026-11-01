@@ -87,9 +87,10 @@ export function explain(c: CompanyState, forced: boolean): string[] {
   const thriving = archetype === 'cement' ? ': pennants fly on the silos' : '';
   why.push(`Health ${c.health.toLowerCase()}${r20}${decline ? `: ${decline}` : c.health === 'THRIVING' ? thriving : ''}.`);
   const project = c.expansion ? { what: 'Enlarging the site', ...c.expansion } : c.slots.find((s) => s.stage !== 'EMPTY' && s.stage !== 'COMPLETE');
+  const sizeLine = `Size: level ${c.level} of 10 (most it can reach: ${c.ceiling})${c.levelTarget !== c.level ? `, working towards level ${c.levelTarget}` : ''}.`;
   if (project) {
-    const what = 'what' in project ? project.what : 'Building on a reserved pad';
-    why.push(project.paused ? `${what}, paused until health is strong again.` : `${what} (${project.stage.toLowerCase()} stage) after a run of strong days.`);
-  }
+    const what = 'what' in project ? project.what : 'A building on a reserved pad';
+    why.push(project.paused ? `${what} is being wound down: the crew has gone and a tarp covers it. ${sizeLine}` : `${what} (${project.stage.toLowerCase()} stage) as the company's size grows. ${sizeLine}`);
+  } else why.push(sizeLine);
   return why;
 }

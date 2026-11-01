@@ -10,8 +10,8 @@ import { SIZE_RULES } from '../config/thresholds';
  * (intraday price derived from this cap) comes with the construction step.
  */
 
-/** How far the cap travels over the window: highest ÷ lowest. */
-const RANGE_RATIO = 4;
+/** How far the cap travels over the window by default: highest ÷ lowest. */
+export const RANGE_RATIO = 4;
 /** Day-to-day pull back toward the middle; below 1 so the path wanders over years, not days. */
 const PULL = 0.995;
 const STEP_SD = 0.06;
@@ -24,7 +24,7 @@ export interface CapSeed {
 }
 
 /** Daily caps, oldest first, ending at `seed.cap` with the end sitting at `seed.cycle` of the window's range. */
-export function generateCapHistory(seed: CapSeed, rngSeed: number, days: number = SIZE_RULES.cycleWindowDays): number[] {
+export function generateCapHistory(seed: CapSeed, rngSeed: number, days: number = SIZE_RULES.cycleWindowDays, rangeRatio: number = RANGE_RATIO): number[] {
   let raw: number[] = [];
   let end = 0.5;
   // The end of the walk must not be its own extreme, or the warp below can't place it. Rare; re-draw.
@@ -44,7 +44,7 @@ export function generateCapHistory(seed: CapSeed, rngSeed: number, days: number 
 
   // Piecewise-linear warp of [0,1] that sends the walk's end to the wanted cycle position.
   const warp = (w: number) => (w <= end ? (seed.cycle * w) / end : seed.cycle + ((1 - seed.cycle) * (w - end)) / (1 - end));
-  const span = Math.log(RANGE_RATIO);
+  const span = Math.log(rangeRatio);
   const floor = Math.log(seed.cap) - span * seed.cycle;
   return raw.map((w) => Math.exp(floor + span * warp(w)));
 }

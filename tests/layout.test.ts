@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { COMPANIES, SITE_TIERS } from '../src/config/companies';
 import { SECTORS } from '../src/config/sectors';
 import { districtRect, districtStreets, LOT_SIZE, lotRect, mainRoads, overlaps, parkRect, signSpot, siteRect, WORLD_HALF, type Rect } from '../src/config/layout';
+import { footprintTier, MAX_LEVEL } from '../src/engine/ladder';
 
 const inside = (r: Rect, outer: Rect) => r.minX >= outer.minX && r.maxX <= outer.maxX && r.minZ >= outer.minZ && r.maxZ <= outer.maxZ;
 const world: Rect = { minX: -WORLD_HALF, maxX: WORLD_HALF, minZ: -WORLD_HALF, maxZ: WORLD_HALF };
@@ -50,14 +51,8 @@ describe('city layout', () => {
     }
   });
 
-  it('gives every archetype three tiers and starts each sector’s biggest company on a bigger site', () => {
-    for (const tiers of Object.values(SITE_TIERS)) expect(tiers).toHaveLength(3);
-    for (const s of SECTORS) {
-      const inSector = COMPANIES.filter((c) => c.sectorId === s.id);
-      const biggest = inSector.reduce((a, b) => (b.scale > a.scale ? b : a));
-      const smallest = inSector.reduce((a, b) => (b.scale < a.scale ? b : a));
-      expect(biggest.startTier).toBeGreaterThan(smallest.startTier);
-    }
+  it('gives every archetype three tiers, one for each footprint step of the level ladder', () => {
+    for (const tiers of Object.values(SITE_TIERS)) expect(tiers).toHaveLength(footprintTier(MAX_LEVEL));
   });
 
   it('stands each district sign inside its park', () => {

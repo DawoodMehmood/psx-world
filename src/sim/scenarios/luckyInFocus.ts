@@ -1,8 +1,8 @@
 import type { DayPlan, Scenario } from '../types';
 
 /**
- * M2 proof scenario: Lucky Cement goes through every state, grows its site to
- * tier 3, then declines for weeks, while the rest of the city has ordinary days.
+ * M2 proof scenario: Lucky Cement goes through every state, grows its site,
+ * then declines for weeks, while the rest of the city has ordinary days.
  * Fictional data, not a historical record.
  */
 const LUCK: Record<number, DayPlan> = {
@@ -53,7 +53,9 @@ export const luckyInFocus: Scenario = {
   seed: 7,
   days: 39,
   focus: 'LUCK',
-  // Construction moves on at each day's close, so each caption describes what you see during that day.
+  // Demo clock: real sizes move over months, so this demo smooths over days and uses a narrow 5-year range.
+  size: { smoothDays: 12, dwellDays: 3, rangeRatio: 1.3 },
+  // Construction follows market cap and moves at each day's close; the demo bar adds a "site news" line computed from the data.
   notes: {
     1: 'A normal day. Every company ticks along.',
     2: 'LUCK goes quiet: hardly any trading.',
@@ -61,39 +63,39 @@ export const luckyInFocus: Scenario = {
     4: 'LUCK frenzy: volume spike and a big jump up.',
     5: 'LUCK keeps climbing on busy trading.',
     6: 'LUCK has been strong for three days running.',
-    7: 'Construction starts: the reserved pad for a second kiln line is staked out.',
-    8: 'A wild day for LUCK: big swings, no clear direction. Kiln foundations are in.',
-    9: 'LUCK falls hard on heavy selling. The new kiln frame is up.',
-    10: 'LUCK slides to a 20-day low. Its health has dropped, so construction is paused.',
+    7: 'A steady day up for LUCK.',
+    8: 'A wild day for LUCK: big swings, no clear direction.',
+    9: 'LUCK falls hard on heavy selling.',
+    10: 'LUCK slides to a 20-day low; its health has dropped.',
     11: 'LUCK trading is halted mid-day, then resumes.',
     12: 'LUCK starts to recover.',
-    13: 'Recovery holds: health is strong again, so construction can resume.',
-    14: 'LUCK announces a dividend. The second kiln line is finished.',
+    13: 'Recovery holds: health is strong again.',
+    14: 'LUCK announces a dividend.',
     15: 'LUCK keeps climbing.',
-    16: 'Next pad staked out: a loading wing.',
-    17: 'Foundations for the loading wing.',
-    18: 'The loading wing goes up.',
-    19: 'Loading wing done: two more silos, each with its own truck bay. Every pad on this site is built.',
-    20: 'The site is full: surveyors stake out more of the lot.',
-    21: 'The new land is cleared and graded.',
-    22: 'Fence and gravel go in around the new land.',
-    23: 'The site has grown to tier 3, with fresh pads for future growth.',
-    24: 'A third kiln line is staked out. LUCK starts to slip on thin trading.',
-    25: 'Kiln foundations go in: health is still strong, so work carries on.',
-    26: 'The kiln frame goes up as the selling picks up.',
-    27: 'The third kiln line is finished, just as the run ends.',
-    28: 'Health has cooled to steady: no new projects start, but every kiln still runs.',
+    16: 'LUCK keeps climbing on firm volume.',
+    17: 'Another strong day for LUCK.',
+    18: 'Steady gains continue.',
+    19: 'LUCK nears its highs.',
+    20: 'LUCK keeps climbing. Size follows market cap, so weeks of gains matter.',
+    21: 'The run continues.',
+    22: 'The run continues on heavy volume.',
+    23: 'The run is about to end.',
+    24: 'LUCK starts to slip on thin trading.',
+    25: 'The slide continues.',
+    26: 'The selling picks up.',
+    27: 'The run has ended.',
+    28: 'Health has cooled to steady.',
     29: 'A sharp fall on heavy selling.',
     30: 'LUCK keeps sliding.',
     31: 'A new 20-day low.',
     32: 'A small bounce, but the slide has lasted weeks.',
     33: 'Another bounce. Health is about to turn weak.',
     34: 'Health weak: the newest kiln is mothballed under a tarp, a truck bay is coned off, fewer workers.',
-    35: 'Still weak. Nothing is torn down; the plant just runs smaller.',
+    35: 'Still weak: the plant runs smaller.',
     36: 'Health struggling: only the first kiln runs. Most bays are closed, windows boarded up, weeds in the yard.',
     37: 'Trading thins out. The plant is quiet.',
-    38: 'Weeks of decline: the site keeps everything it built, but most of it stands idle.',
-    39: 'The end of the demo. If health recovers, the kilns fire back up and growth resumes.',
+    38: 'Weeks of decline.',
+    39: 'The end of the demo. If health recovers, the kilns fire back up.',
   },
   plan: (ticker, day) => (ticker === 'LUCK' ? LUCK[day] : undefined),
 };

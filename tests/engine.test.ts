@@ -35,77 +35,13 @@ describe('levels', () => {
 });
 
 /** A tracker with a flat 25-day history at price 100 and volume 800. */
-function tracker(slotsPerTier = [1, 2], startTier = 1) {
+function tracker() {
   return new CompanyTracker(
-    { ticker: 'TEST', sectorId: 's', scale: 1, startTier, slotsPerTier },
+    { ticker: 'TEST', sectorId: 's', scale: 1, sharesOutstanding: 1e9, sectorCapRange: { low: 1, high: 100 } },
     { closes: Array(25).fill(100), volumes: Array(25).fill(800) },
   );
 }
 const obs = (day: number, tick: number, price: number, volume = 100, extra: Partial<Observation> = {}): Observation => ({ ticker: 'TEST', day, tick, price, volume, ...extra });
-
-describe('construction and site tiers', () => {
-  /** Feed one health score per day; return a compact picture of the site after each day. */
-  const runDays = (t: CompanyTracker, scores: number[]) =>
-    scores.map((score) => {
-      t.setHealth(score);
-      t.advanceConstruction();
-      const s = t.snapshot(0, 0);
-      const letter: Record<string, string> = { EMPTY: 'E', STAKED: 'S', FOUNDATION: 'F', FRAME: 'R', COMPLETE: 'C' };
-      const stage = (x: { stage: string; paused: boolean }) => letter[x.stage] + (x.paused ? '*' : '');
-      return `T${s.tier} ${s.slots.map(stage).join('')}${s.expansion ? ' X' + stage(s.expansion) : ''}`;
-    });
-
-  it('builds the tier’s slots, then expands the site, then builds the next tier’s slots', () => {
-    const t = tracker([1, 2]);
-    expect(runDays(t, Array(14).fill(5))).toEqual([
-      'T1 EEE',
-      'T1 EEE',
-      'T1 SEE',
-      'T1 FEE',
-      'T1 REE',
-      'T1 CEE',
-      'T1 CEE XS',
-      'T1 CEE XF',
-      'T1 CEE XR',
-      'T2 CEE',
-      'T2 CSE',
-      'T2 CFE',
-      'T2 CRE',
-      'T2 CCE',
-    ]);
-  });
-
-  it('starts the first project only after three strong days, then keeps going day after day', () => {
-    const t = tracker([2]);
-    const days = runDays(t, [10, 10, 0, 10, 10, 10, 10, 10, 10, 10]);
-    expect(days.slice(0, 5).every((d) => d === 'T1 EE')).toBe(true);
-    expect(days[5]).toBe('T1 SE');
-    expect(days[8]).toBe('T1 CE');
-    expect(days[9]).toBe('T1 CS');
-  });
-
-  it('pauses when health drops, resumes when it recovers, and never undoes anything', () => {
-    const t = tracker([1, 1]);
-    const days = runDays(t, [5, 5, 5, 5, 5, 5, 5, -10, -10, -10, 5, 5, 5]);
-    expect(days[6]).toBe('T1 CE XS');
-    expect(days[7]).toBe('T1 CE XS*');
-    expect(days[9]).toBe('T1 CE XS*');
-    expect(days[10]).toBe('T1 CE XF');
-    expect(days[11]).toBe('T1 CE XR');
-    expect(days[12]).toBe('T2 CE');
-  });
-
-  it('starts bigger companies on a bigger site with the smaller tiers already built', () => {
-    const t = tracker([1, 2, 3], 2);
-    expect(runDays(t, [0])).toEqual(['T2 CEEEEE']);
-  });
-
-  it('stops at the top tier once every slot is built', () => {
-    const t = tracker([1, 1], 1);
-    const days = runDays(t, Array(40).fill(10));
-    expect(days[days.length - 1]).toBe('T2 CC');
-  });
-});
 
 describe('events', () => {
   it('fires a big move only once per cooldown and lets it expire', () => {
@@ -161,32 +97,32 @@ describe('Lucky Cement scenario', () => {
     expect(at(11, 3).LUCK.halted).toBe(true);
     expect(at(11, 6).LUCK.events.map((e) => e.type)).toContain('RESUME');
     expect(at(14, 4).LUCK.events.map((e) => e.type)).toContain('DIVIDEND');
-    expect(at(1, 0).DGKC.tier).toBe(1);
   });
 
-  it('fills LUCK’s tier 2 pads, pausing through the crash, then expands the site to tier 3', () => {
-    expect(at(1, 0).LUCK.tier).toBe(2);
-    expect(at(6, 7).LUCK.slots[1].stage).toBe('STAKED');
-    expect(at(10, 3).LUCK.slots[1]).toEqual({ stage: 'FRAME', paused: true });
-    expect(at(13, 7).LUCK.slots[1].stage).toBe('COMPLETE');
-    expect(at(18, 7).LUCK.slots[2].stage).toBe('COMPLETE');
-    expect(at(19, 7).LUCK.expansion?.stage).toBe('STAKED');
-    expect(at(22, 6).LUCK.tier).toBe(2);
-    expect(at(22, 7).LUCK.tier).toBe(3);
-    expect(at(23, 7).LUCK.slots[3].stage).toBe('STAKED');
+  it('builds LUCK up the ladder as its cap rises, then winds it down as the slide goes on', () => {
+    const levels = snaps.filter((_, i) => i % TICKS_PER_DAY === TICKS_PER_DAY - 1).map((s) => s.companies.LUCK.level);
+    const start = snaps[0].companies.LUCK.level;
+    expect(Math.max(...levels)).toBeGreaterThan(start);
+    expect(levels[levels.length - 1]).toBeLessThan(Math.max(...levels));
+    const peak = levels.indexOf(Math.max(...levels));
+    // growth comes before the decline, and the ladder moves one level at a time
+    expect(peak).toBeGreaterThan(levels.findIndex((l) => l > start));
+    for (let i = 1; i < levels.length; i++) expect(Math.abs(levels[i] - levels[i - 1])).toBeLessThanOrEqual(1);
   });
 
-  it('finishes the third kiln, then declines through steady and weak to struggling without undoing anything', () => {
-    expect(at(26, 7).LUCK.slots[3].stage).toBe('COMPLETE');
+  it('shows the wind-down: a building under tarp (paused) while LUCK’s level falls', () => {
+    const tarped = snaps.filter((s) => s.companies.LUCK.slots.some((slot) => slot.paused));
+    expect(tarped.length).toBeGreaterThan(0);
+    expect(snaps.indexOf(tarped[0])).toBeGreaterThan(24 * TICKS_PER_DAY);
+  });
+
+  it('declines through steady and weak to struggling, and health never gets better in the long slide', () => {
     expect(at(28, 7).LUCK.health).toBe('STEADY');
     expect(at(33, 7).LUCK.health).toBe('WEAK');
     expect(at(35, 7).LUCK.health).toBe('STRUGGLING');
     const healthRank = ['STRUGGLING', 'WEAK', 'STEADY', 'STRONG', 'THRIVING'];
     const closes = snaps.filter((_, i) => i >= 25 * TICKS_PER_DAY && i % TICKS_PER_DAY === TICKS_PER_DAY - 1).map((s) => healthRank.indexOf(s.companies.LUCK.health));
     expect(closes.every((h, i) => i === 0 || h <= closes[i - 1])).toBe(true);
-    const last = snaps[snaps.length - 1].companies.LUCK;
-    expect(last.tier).toBe(3);
-    expect(last.slots.slice(0, 4).every((slot) => slot.stage === 'COMPLETE')).toBe(true);
   });
 
   it('leaves every other company calm: no events, no frenzy, no construction, no growth', () => {
@@ -197,7 +133,8 @@ describe('Lucky Cement scenario', () => {
         expect(c.activity).not.toBe('FRENZY');
         expect(c.slots.every((slot) => slot.stage !== 'STAKED' && slot.stage !== 'FOUNDATION' && slot.stage !== 'FRAME')).toBe(true);
         expect(c.expansion).toBeNull();
-        expect(c.tier).toBe(s.companies[c.ticker] && snaps[0].companies[c.ticker].tier);
+        expect(c.tier).toBe(snaps[0].companies[c.ticker].tier);
+        expect(c.level).toBe(snaps[0].companies[c.ticker].level);
       }
     }
   });
@@ -225,20 +162,25 @@ describe('Two months on the Exchange', () => {
     expect(types(18, 'LUCK')).toContain('DIVIDEND');
   });
 
-  it('pauses MEBL’s construction in the selloff, then finishes its lot', () => {
-    expect(close(13).MEBL.slots[2].stage).toBe('FOUNDATION');
-    expect(close(16).MEBL.slots[2]).toEqual({ stage: 'FRAME', paused: true });
-    expect(close(19).MEBL.slots[2].stage).toBe('COMPLETE');
-    expect(close(24).MEBL.tier).toBe(3);
-    expect(close(40).MEBL.slots.every((s) => s.stage === 'COMPLETE')).toBe(true);
+  it('grows MEBL and SYS up the ladder while OGDC and HBL wind down', () => {
+    expect(close(40).MEBL.level).toBeGreaterThan(close(1).MEBL.level);
+    expect(close(40).SYS.level).toBeGreaterThan(close(1).SYS.level);
+    expect(close(40).OGDC.level).toBeLessThan(close(1).OGDC.level);
+    expect(close(40).HBL.level).toBeLessThan(close(1).HBL.level);
   });
 
-  it('grows MARI to tier 2 while HBL and OGDC slide to struggling', () => {
-    expect(close(1).MARI.tier).toBe(1);
-    expect(close(34).MARI.tier).toBe(2);
+  it('winds sites down under tarps after the selloff, and never changes a level by more than one a day', () => {
+    const tarped = new Set(snaps.flatMap((s) => Object.values(s.companies).filter((c) => c.slots.some((slot) => slot.paused)).map((c) => c.ticker)));
+    expect(tarped.has('OGDC')).toBe(true);
+    for (const ticker of Object.keys(snaps[0].companies)) {
+      const levels = snaps.filter((_, i) => i % TICKS_PER_DAY === TICKS_PER_DAY - 1).map((s) => s.companies[ticker].level);
+      for (let i = 1; i < levels.length; i++) expect(Math.abs(levels[i] - levels[i - 1]), ticker).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it('keeps health decline visuals on their own schedule: HBL and OGDC slide to weak and struggling', () => {
     expect(close(27).HBL.health).toBe('WEAK');
     expect(close(31).HBL.health).toBe('STRUGGLING');
-    expect(close(40).HBL.slots[2].paused).toBe(true);
     expect(close(28).OGDC.health).toBe('STRUGGLING');
   });
 

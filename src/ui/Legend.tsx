@@ -90,8 +90,8 @@ export function Legend() {
       <Row icon={<span className="glyph">≈</span>} title="Rhythm: volatility">
         Machines stutter, the flag flaps hard and the light flickers when the price swings around.
       </Row>
-      <Row icon={<span className="glyph">▲</span>} title="The site: long-term health">
-        A strong company builds: cranes, new buildings on reserved pads, then a bigger site. A weak one winds down: idle machines, TO LET boards, coned-off bays, weeds. Nothing is ever torn down.
+      <Row icon={<span className="glyph">▲</span>} title="The site: size and health">
+        A bigger market cap builds: cranes, new buildings on reserved pads, then a bigger site; a falling one winds buildings down under tarps. Health is separate: a weak company idles machines, puts up TO LET boards, cones off bays and lets weeds grow.
       </Row>
       <div className="legend-events">
         {EVENTS.map(([what, means]) => (

@@ -52,7 +52,7 @@ export const SLOT_STAGES: SlotStage[] = ['EMPTY', 'STAKED', 'FOUNDATION', 'FRAME
 
 export interface SlotState {
   stage: SlotStage;
-  /** Construction started but health dropped below STRONG. */
+  /** Being wound down: the crew has gone and a tarp covers the structure. */
   paused: boolean;
 }
 
@@ -76,11 +76,19 @@ export interface CompanyState {
   volatility: Volatility;
   halted: boolean;
   events: MarketEvent[];
-  /** Current site tier, from 1 (SPEC §8). Never goes down. */
+  /** Highest level fully built (DESIGN.md §4), 1–10. */
+  level: number;
+  /** The level the data calls for; `level` works towards it one project at a time (§5). */
+  levelTarget: number;
+  /** The most the company's size allows (§3.1). */
+  ceiling: number;
+  /** Where its smoothed cap sits in its own 5-year range, 0–1; null with too little history. */
+  cycle: number | null;
+  /** Site tier (1–3): how deep the site reaches into its lot. Follows the construction timeline. */
   tier: number;
-  /** Expansion slots of every tier, in build order. Slots beyond the current tier stay EMPTY. */
+  /** Expansion pads in build order; finished, under construction or being wound down (paused). */
   slots: SlotState[];
-  /** The site expansion to the next tier, while one is underway. */
+  /** The site enlargement underway, if any. */
   expansion: SlotState | null;
 }
 

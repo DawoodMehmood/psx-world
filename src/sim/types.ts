@@ -16,6 +16,14 @@ export interface DayPlan {
   dividendTick?: number;
 }
 
+/** Overrides of the size rules for a demo that has to show slow growth in weeks. */
+export type SizeOverrides = Partial<{
+  smoothDays: number;
+  dwellDays: number;
+  /** Highest ÷ lowest cap over the 5-year history; narrower than real so a 30% move is a big step on the ladder. */
+  rangeRatio: number;
+}>;
+
 export interface Scenario {
   id: string;
   name: string;
@@ -26,4 +34,6 @@ export interface Scenario {
   /** One-line caption per day: what to watch for. */
   notes: Record<number, string>;
   plan: (ticker: string, day: number) => DayPlan | undefined;
+  /** Compresses the slow size clock for a short demo. Leave unset to use the real rules. */
+  size?: SizeOverrides;
 }

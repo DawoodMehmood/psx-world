@@ -19,7 +19,12 @@ const REVERSION = 0.08;
  * Turns a scenario script into fictional, deterministic price and volume data.
  * The same scenario always produces exactly the same numbers.
  */
-export function generateMarket(scenario: Scenario, tickers: string[]): MarketData {
+export function generateMarket(
+  scenario: Scenario,
+  tickers: string[],
+  /** Where each company's price starts, and its daily market-cap history in Rs billions (see capSeeds). */
+  start: { prices: Record<string, number>; capHistory: Record<string, number[]> },
+): MarketData {
   const rng = createRng(scenario.seed);
   const gauss = () => {
     const u = Math.max(rng(), 1e-9);
@@ -29,7 +34,9 @@ export function generateMarket(scenario: Scenario, tickers: string[]): MarketDat
   const base = new Map<string, { price: number; volume: number }>();
   const history: Record<string, History> = {};
   for (const t of tickers) {
-    const b = { price: Math.round((40 + rng() * 800) * 100) / 100, volume: Math.round(2e5 + rng() * 4e6) };
+    // The random draw stays so every other number in a scenario is unchanged.
+    const drawn = Math.round((40 + rng() * 800) * 100) / 100;
+    const b = { price: start.prices[t] ?? drawn, volume: Math.round(2e5 + rng() * 4e6) };
     base.set(t, b);
     const closes: number[] = [];
     const volumes: number[] = [];
@@ -69,5 +76,5 @@ export function generateMarket(scenario: Scenario, tickers: string[]): MarketDat
       observations.push(row);
     }
   }
-  return { days: scenario.days, history, observations };
+  return { days: scenario.days, history, capHistory: start.capHistory, observations };
 }

@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { TICKS_PER_DAY } from '../engine/types';
 import { clockTime, SPEEDS, TICK_MS, useClock, useSimStore } from '../store/useSimStore';
 import { SCENARIOS } from '../sim/scenarios';
+import { siteNews, siteNewsLine } from './siteNews';
 
 /** Advances the simulation while playing. */
 export function Playback() {
@@ -36,6 +37,11 @@ export function DemoBar() {
   const { scenario, snapshots, index, playing, speed } = useSimStore();
   const { setPlaying, stepTick, stepDay, setSpeed, setIndex, reset, loadScenario } = useSimStore();
   const clock = useClock();
+  // What changed on the sites overnight: the day's start against the day before's.
+  const news = useMemo(() => {
+    const at = (day: number) => snapshots[(day - 1) * TICKS_PER_DAY]?.companies;
+    return clock.day > 1 ? siteNewsLine(siteNews(at(clock.day - 1), at(clock.day))) : '';
+  }, [snapshots, clock.day]);
   const days = snapshots.length / TICKS_PER_DAY;
   const bar = useRef<HTMLDivElement>(null);
   // Cards that sit above the bar (company and district cards) read its height from --demo-h, because it grows when its controls wrap.
@@ -53,7 +59,7 @@ export function DemoBar() {
     <div className="panel demo" ref={bar}>
       <div className="caption">
         <span className="day">Day {clock.day}</span>
-        <span className="note">{scenario.notes[clock.day] ?? ''}</span>
+        <span className="note">{[scenario.notes[clock.day], news].filter(Boolean).join(' ')}</span>
         {SCENARIOS.length > 1 && (
           <select value={scenario.id} onChange={(e) => loadScenario(e.target.value)} aria-label="Scenario">
             {SCENARIOS.map((s) => (

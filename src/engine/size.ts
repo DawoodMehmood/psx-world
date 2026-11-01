@@ -12,6 +12,8 @@ export interface CapRange {
 }
 
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
+export type SizeRules = typeof SIZE_RULES;
+
 const clampLevel = (n: number) => Math.max(1, Math.min(SIZE_RULES.levels, n));
 
 /** Where `value` sits between `low` and `high` on a log scale, 0–1. A degenerate range reads as the middle. */
@@ -39,8 +41,8 @@ export function smoothSeries(caps: number[], days = SIZE_RULES.smoothDays): numb
 }
 
 /** The highest level a company of this cap can ever reach: size within its sector and within the market. */
-export function ceilingLevel(cap: number, sector: CapRange, market: CapRange): number {
-  const w = SIZE_RULES.ceilingWeights;
+export function ceilingLevel(cap: number, sector: CapRange, market: CapRange, rules: SizeRules = SIZE_RULES): number {
+  const w = rules.ceilingWeights;
   const p = w.sector * logPosition(cap, sector.low, sector.high) + w.market * logPosition(cap, market.low, market.high);
   return Math.round(clampLevel(1 + (SIZE_RULES.levels - 1) * p));
 }
@@ -50,9 +52,9 @@ export function ceilingLevel(cap: number, sector: CapRange, market: CapRange): n
  * cycle window, 0–1; null when there is too little history for a cycle.
  * `smoothed` is a daily series of smoothed caps, oldest first.
  */
-export function cyclePosition(smoothed: number[]): number | null {
-  if (smoothed.length < SIZE_RULES.minCycleDays) return null;
-  const window = smoothed.slice(-SIZE_RULES.cycleWindowDays);
+export function cyclePosition(smoothed: number[], rules: SizeRules = SIZE_RULES): number | null {
+  if (smoothed.length < rules.minCycleDays) return null;
+  const window = smoothed.slice(-rules.cycleWindowDays);
   return logPosition(window[window.length - 1], Math.min(...window), Math.max(...window));
 }
 
@@ -73,7 +75,7 @@ export class BuiltLevelTracker {
   level: number;
   private since = 0;
 
-  constructor(ceiling: number, cycle: number | null) {
+  constructor(ceiling: number, cycle: number | null, private rules: SizeRules = SIZE_RULES) {
     this.level = builtLevel(ceiling, cycle);
   }
 
@@ -85,8 +87,8 @@ export class BuiltLevelTracker {
       return this.level;
     }
     const raw = builtLevelRaw(ceiling, cycle);
-    const edge = 0.5 + SIZE_RULES.hysteresisLevels;
-    if (this.since >= SIZE_RULES.dwellDays) {
+    const edge = 0.5 + this.rules.hysteresisLevels;
+    if (this.since >= this.rules.dwellDays) {
       if (raw >= this.level + edge && this.level < ceiling) this.level++;
       else if (raw <= this.level - edge && this.level > 1) this.level--;
       else return this.level;
