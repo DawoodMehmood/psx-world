@@ -72,3 +72,21 @@ export const AGGREGATE_RULES = {
   /** Market breadth weight per company: base + scale, so big names count a little more. */
   breadthWeightBase: 0.5,
 };
+
+/** Size levels (DESIGN.md §3.1). */
+export const SIZE_RULES = {
+  /** Levels on the ladder, 1 (core site) to this. */
+  levels: 10,
+  /** Trading days averaged into the smoothed cap, so a hot week doesn't rebuild the city. */
+  smoothDays: 60,
+  /** Trading days in the cycle window (about 5 years). */
+  cycleWindowDays: 1250,
+  /** With less history than this there is no meaningful cycle: built level = ceiling. */
+  minCycleDays: 250,
+  /** Ceiling weights: size within the sector counts most, within the whole market the rest. */
+  ceilingWeights: { sector: 0.7, market: 0.3 },
+  /** The unrounded built level must pass the half-step by this much before the level changes. */
+  hysteresisLevels: 0.15,
+  /** Trading days a built level holds before it can change (a lower ceiling overrides this). */
+  dwellDays: 5,
+};

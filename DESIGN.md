@@ -80,6 +80,8 @@ A company can never be built beyond its ceiling. A small company at its all-time
 
 **Stability.** B changes only at end of day; moves one step at a time; requires the unrounded value to pass the half-step by a 0.15-level margin (hysteresis); minimum dwell 5 trading days.
 
+Two consequences, confirmed in `engine/size.ts` tests: hysteresis leaves a dead band, so a raw level of 5.5 settles at 5 when climbing and at 6 when falling (the replay in §5 fixes the start, so this stays deterministic); and a company at the very bottom of its sector still has ceiling 2, because the market-share term counts for 30%.
+
 **Scale** (0–1) is the continuous position of `Psector` inside its level, and drives tower heights and prop counts *within* a level. It moves only with `smoothCap`.
 
 ### 3.2 Health
