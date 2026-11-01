@@ -1,6 +1,8 @@
 import { createContext, useContext } from 'react';
 import { Color } from 'three';
-import type { Activity, Direction, Volatility } from '../engine/types';
+import { ACTIVITY_INTENSITY, BEACON, FLAG_HEIGHT, JITTER } from '../engine/visual';
+
+export { ACTIVITY_INTENSITY, BEACON, FLAG_HEIGHT, JITTER };
 
 /**
  * Per-plot animation state, eased every frame toward targets derived from the
@@ -21,18 +23,6 @@ export interface PlotMotion {
   halted: boolean;
   beacon: Color;
 }
-
-export const ACTIVITY_INTENSITY: Record<Activity, number> = { QUIET: 0.1, NORMAL: 0.42, BUSY: 0.72, FRENZY: 1 };
-export const FLAG_HEIGHT: Record<Direction, number> = { DOWN_HARD: 0.04, DOWN: 0.27, FLAT: 0.5, UP: 0.73, UP_HARD: 0.96 };
-export const JITTER: Record<Volatility, number> = { CALM: 0, CHOPPY: 0.45, WILD: 1 };
-/** Warm when up, cool when down: the beacon backs up the flag so direction isn't color-only or position-only. */
-export const BEACON: Record<Direction, string> = {
-  DOWN_HARD: '#3d7bff',
-  DOWN: '#8fbcff',
-  FLAT: '#f4f1e8',
-  UP: '#ffd36b',
-  UP_HARD: '#ffa526',
-};
 
 export function createMotion(): PlotMotion {
   return { t: 0, intensity: 0.42, speed: 1, jitter: 0, flag: 0.5, halted: false, beacon: new Color(BEACON.FLAT) };

@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { useShallow } from 'zustand/react/shallow';
 import type { CompanyState, Snapshot } from '../engine/types';
 import { TICKS_PER_DAY } from '../engine/types';
+import { companyVisual } from '../engine/visual';
 import { simulate } from '../sim/run';
 import { SCENARIOS } from '../sim/scenarios';
 import type { Scenario } from '../sim/types';
@@ -95,6 +96,7 @@ export function useCompanyVisual(ticker: string) {
     useShallow((s) => {
       const c = effectiveCompany(s, ticker);
       return {
+        ...companyVisual(c),
         health: c.health,
         direction: c.direction,
         activity: c.activity,

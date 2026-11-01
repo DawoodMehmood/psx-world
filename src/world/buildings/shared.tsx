@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { CanvasTexture, Object3D, SRGBColorSpace, type Group, type InstancedMesh } from 'three';
 import { createRng } from '../../engine/rng';
 import { HEALTH, type SlotState } from '../../engine/types';
+import { CREW, openBayCount, runningCount } from '../../engine/visual';
 import { ConstructionSlot } from '../construction/ConstructionSlot';
 import { Box, Cone, Cyl, GEO, mat, type Vec3 } from '../kit';
 import { useMotion } from '../motion';
@@ -82,13 +83,7 @@ export function Slots({ designs, props }: { designs: SlotDesign[]; props: Archet
 // ── decline (SPEC §8) ────────────────────────────────────────────────────────
 // Nothing is demolished. The newest capacity is idled first.
 
-/** Share of the full crew on site at each health level (STRUGGLING … THRIVING). */
-export const CREW = [0.35, 0.6, 1, 1, 1];
-
-/** How many of `built` units (oldest first) still run: WEAK idles the newest, STRUGGLING keeps only the first. */
-export function runningCount(h: number, built: number): number {
-  return h >= 2 ? built : h === 1 ? Math.max(1, built - 1) : 1;
-}
+export { CREW, runningCount };
 
 /**
  * Whether a finished slot building is closed by decline, for sites where the
@@ -104,8 +99,7 @@ export function closedByDecline(p: ArchetypeProps, slot: number, closeOrder: num
 
 /** Bays still open, from the front; the rest are coned off. */
 export function openBays<T>(h: number, bays: T[]): T[] {
-  const n = h >= 2 ? bays.length : h === 1 ? Math.max(2, Math.ceil(bays.length * 0.6)) : Math.max(1, Math.ceil(bays.length / 3));
-  return bays.slice(0, n);
+  return bays.slice(0, openBayCount(h, bays.length));
 }
 
 /** Cones and a striped bar across the mouth of a closed bay (the bay runs along x, its mouth faces the street). */

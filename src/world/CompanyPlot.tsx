@@ -11,7 +11,7 @@ import { FlagMast } from './buildings/FlagMast';
 import { EventEffects } from './effects/EventEffects';
 import { HaltTape } from './effects/HaltTape';
 import { Box } from './kit';
-import { ACTIVITY_INTENSITY, BEACON, createMotion, FLAG_HEIGHT, JITTER, MotionContext } from './motion';
+import { createMotion, MotionContext } from './motion';
 import { ReservedLand, SiteExpansion } from './site';
 
 /**
@@ -48,10 +48,10 @@ export function CompanyPlot({ company, index }: { company: CompanyDefinition; in
     const dt = Math.min(frameDt, 0.1);
     const v = target.current;
     const k = 1 - Math.exp(-dt * 2.5);
-    motion.intensity += (ACTIVITY_INTENSITY[v.activity] - motion.intensity) * k;
-    motion.jitter += (JITTER[v.volatility] - motion.jitter) * k;
-    motion.flag += (FLAG_HEIGHT[v.direction] - motion.flag) * (1 - Math.exp(-dt * 1.6));
-    motion.beacon.lerp(beaconTarget.set(BEACON[v.direction]), k);
+    motion.intensity += (v.intensity - motion.intensity) * k;
+    motion.jitter += (v.jitter - motion.jitter) * k;
+    motion.flag += (v.flag - motion.flag) * (1 - Math.exp(-dt * 1.6));
+    motion.beacon.lerp(beaconTarget.set(v.beacon), k);
     motion.halted = v.halted;
     // Volatile plots stutter: speed lurches up and down instead of running smoothly.
     const T = clock.elapsedTime;
