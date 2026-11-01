@@ -6,7 +6,8 @@ import { createRng } from '../engine/rng';
 import type { SlotState } from '../engine/types';
 import { Workers } from './agents';
 import { STAKE } from './construction/ConstructionSlot';
-import { Box, Tree } from './kit';
+import { Box, Trees } from './kit';
+import { Static } from './Static';
 import { useMotion } from './motion';
 
 /*
@@ -31,6 +32,7 @@ export function SiteExpansion({ from, to, stage, paused }: { from: number; to: n
   const deep = to - from;
   return (
     <group>
+      <Static>
       {ground && <Box size={[LOT_SIZE, 0.05, deep]} at={[LOT_SIZE / 2, 0, mid]} color={ground} shadow={false} />}
       {stage === 'STAKED' && (
         <>
@@ -55,6 +57,7 @@ export function SiteExpansion({ from, to, stage, paused }: { from: number; to: n
           <Box size={[0.04, 0.06, deep]} at={[LOT_SIZE, 0.75, mid]} color="#9a948a" shadow={false} />
         </>
       )}
+      </Static>
       {stage === 'FOUNDATION' && <Grader at={[LOT_SIZE / 2, mid]} travel={LOT_SIZE - 3} working={!paused} />}
       {!paused && stage !== 'STAKED' && (
         <Workers
@@ -83,9 +86,11 @@ function Grader({ at, travel, working }: { at: [number, number]; travel: number;
   });
   return (
     <group ref={g} position={[at[0], 0, at[1]]}>
-      <Box size={[1.4, 0.4, 0.8]} at={[0, 0.15, 0]} color="#f2b632" rounded={0.06} />
-      <Box size={[0.6, 0.5, 0.7]} at={[-0.3, 0.55, 0]} color="#f2b632" rounded={0.06} />
-      <Box size={[0.1, 0.35, 1.1]} at={[0.8, 0.05, 0]} color="#6d675f" />
+      <Static>
+        <Box size={[1.4, 0.4, 0.8]} at={[0, 0.15, 0]} color="#f2b632" rounded={0.06} />
+        <Box size={[0.6, 0.5, 0.7]} at={[-0.3, 0.55, 0]} color="#f2b632" rounded={0.06} />
+        <Box size={[0.1, 0.35, 1.1]} at={[0.8, 0.05, 0]} color="#6d675f" />
+      </Static>
     </group>
   );
 }
@@ -109,14 +114,11 @@ export function ReservedLand({ depth, clearTo, seed }: { depth: number; clearTo:
     return out;
   }, [seed]);
   const lawn = Math.max(depth, clearTo);
+  const shown = useMemo(() => trees.filter((t) => t.z > lawn + 0.8).map((t) => ({ at: [t.x, 0, t.z] as [number, number, number], size: t.s, color: t.c })), [trees, lawn]);
   return (
     <>
       {lawn < LOT_SIZE && <Box size={[LOT_SIZE, 0.04, LOT_SIZE - lawn]} at={[LOT_SIZE / 2, 0, (lawn + LOT_SIZE) / 2]} color="#9fd16a" shadow={false} />}
-      {trees
-        .filter((t) => t.z > lawn + 0.8)
-        .map((t, i) => (
-          <Tree key={i} at={[t.x, 0, t.z]} size={t.s} color={t.c} />
-        ))}
+      <Trees trees={shown} />
     </>
   );
 }

@@ -5,6 +5,7 @@ import { createRng } from '../../engine/rng';
 import { inflate, mainRoads, overlaps, parkRect, lotRect, districtStreets, center, signSpot, LOT_SIZE, PLAZA_HALF, WORLD_HALF, type Rect } from '../../config/layout';
 import { SECTORS } from '../../config/sectors';
 import { Box, Car, Cyl, Trees, Ball, type Vec3 } from '../kit';
+import { Static } from '../Static';
 import { District } from './District';
 import { SectorSign } from './SectorSign';
 
@@ -66,6 +67,7 @@ function Park({ rect, quadrant }: { rect: Rect; quadrant: [number, number] }) {
   const [x, z] = center(rect);
   return (
     <group position={[x, 0, z]}>
+      <Static>
       <Box size={[1.2, 0.05, LOT_SIZE - 1]} color="#ede3c8" shadow={false} />
       <Box size={[LOT_SIZE - 1, 0.05, 1.2]} color="#ede3c8" shadow={false} />
       <Cyl r={2.2} h={0.06} color="#ede3c8" shadow={false} />
@@ -79,6 +81,7 @@ function Park({ rect, quadrant }: { rect: Rect; quadrant: [number, number] }) {
         .map(([dx, dz]) => (
         <Ball key={`${dx}${dz}`} r={0.55} at={[dx, 0.4, dz]} color="#4c9e46" />
       ))}
+      </Static>
     </group>
   );
 }

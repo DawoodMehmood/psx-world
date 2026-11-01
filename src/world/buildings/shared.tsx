@@ -1,6 +1,6 @@
-import { useMemo, useRef, type ReactNode } from 'react';
+import { useLayoutEffect, useMemo, useRef, type ReactNode } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { CanvasTexture, SRGBColorSpace, type Group, type Mesh } from 'three';
+import { CanvasTexture, Object3D, SRGBColorSpace, type Group, type InstancedMesh } from 'three';
 import { createRng } from '../../engine/rng';
 import { HEALTH, type SlotState } from '../../engine/types';
 import { ConstructionSlot } from '../construction/ConstructionSlot';
@@ -288,7 +288,8 @@ export function ActivityWindows({
   darkColor?: string;
 }) {
   const motion = useMotion();
-  const meshes = useRef<(Mesh | null)[]>([]);
+  const litMesh = useRef<InstancedMesh>(null);
+  const darkMesh = useRef<InstancedMesh>(null);
   const windows = useMemo(() => {
     const out: { pos: Vec3; size: Vec3; threshold: number }[] = [];
     const winH = floorHeight * 0.5;
@@ -306,30 +307,38 @@ export function ActivityWindows({
         }
       }
     }
-    return out;
+    // sorted by threshold: the lit windows are always a prefix of this order
+    return out.sort((a, b) => a.threshold - b.threshold);
   }, [at, w, d, floors, floorHeight, baseHeight, cols, seed]);
   const lit = mat(litColor, 0.6);
   const dark = mat(darkColor);
+  // The lit mesh holds the windows in threshold order and the dark mesh holds them in reverse, so showing the first k of
+  // one and the first n - k of the other splits the set at any lit share without touching a matrix per frame.
+  useLayoutEffect(() => {
+    const o = new Object3D();
+    windows.forEach(({ pos, size }, i) => {
+      o.position.set(...pos);
+      o.scale.set(...size);
+      o.updateMatrix();
+      litMesh.current?.setMatrixAt(i, o.matrix);
+      darkMesh.current?.setMatrixAt(windows.length - 1 - i, o.matrix);
+    });
+    for (const m of [litMesh.current, darkMesh.current]) if (m) m.instanceMatrix.needsUpdate = true;
+  }, [windows]);
+  const shown = useRef(-1);
   useFrame(() => {
     const share = closed ? 0 : 0.1 + motion.intensity * 0.85;
-    meshes.current.forEach((m, i) => {
-      if (m) m.material = windows[i].threshold < share ? lit : dark;
-    });
+    let k = 0;
+    while (k < windows.length && windows[k].threshold < share) k++;
+    if (k === shown.current) return;
+    shown.current = k;
+    if (litMesh.current) litMesh.current.count = k;
+    if (darkMesh.current) darkMesh.current.count = windows.length - k;
   });
   return (
     <>
-      {windows.map(({ pos, size }, i) => (
-        <mesh
-          key={i}
-          ref={(el) => {
-            meshes.current[i] = el;
-          }}
-          geometry={GEO.box}
-          material={dark}
-          position={pos}
-          scale={size}
-        />
-      ))}
+      <instancedMesh key={`l${windows.length}`} ref={litMesh} args={[GEO.box, lit, windows.length]} frustumCulled={false} />
+      <instancedMesh key={`d${windows.length}`} ref={darkMesh} args={[GEO.box, dark, windows.length]} frustumCulled={false} />
     </>
   );
 }

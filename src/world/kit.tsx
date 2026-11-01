@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { RoundedBox } from '@react-three/drei';
 import { useLayoutEffect, useRef, type ReactNode } from 'react';
+import { Static } from './Static';
 
 /**
  * Low-poly building kit. Every shape shares a unit geometry and a cached
@@ -99,9 +100,11 @@ export function Roof({ w, d, h, at = [0, 0, 0], color }: ShapeProps & { w: numbe
 export function Tree({ at, size = 1, color = '#4fa83d' }: { at: Vec3; size?: number; color?: string }) {
   return (
     <group position={at} scale={size}>
-      <Cyl r={0.12} h={0.6} color="#8a5a34" low />
-      <mesh geometry={GEO.blob} material={mat(color)} position={[0, 1.05, 0]} scale={[0.6, 0.65, 0.6]} castShadow />
-      <mesh geometry={GEO.blob} material={mat(color)} position={[0.15, 1.45, 0.05]} scale={[0.38, 0.4, 0.38]} rotation={[0.4, 0.6, 0]} castShadow />
+      <Static>
+        <Cyl r={0.12} h={0.6} color="#8a5a34" low />
+        <mesh geometry={GEO.blob} material={mat(color)} position={[0, 1.05, 0]} scale={[0.6, 0.65, 0.6]} castShadow />
+        <mesh geometry={GEO.blob} material={mat(color)} position={[0.15, 1.45, 0.05]} scale={[0.38, 0.4, 0.38]} rotation={[0.4, 0.6, 0]} castShadow />
+      </Static>
     </group>
   );
 }
@@ -160,10 +163,12 @@ export function Trees({ trees }: { trees: TreeSpec[] }) {
 export function Car({ color, at = [0, 0, 0], rotY = 0 }: { color: string; at?: Vec3; rotY?: number }) {
   return (
     <group position={at} rotation={[0, rotY, 0]}>
-      <Box size={[1.1, 0.35, 0.6]} at={[0, 0.12, 0]} color={color} rounded={0.08} />
-      <Box size={[0.6, 0.28, 0.52]} at={[-0.08, 0.45, 0]} color="#dff3ff" rounded={0.06} />
-      <Cyl r={0.13} h={0.64} at={[0.32, 0.13, 0]} rot={[Math.PI / 2, 0, 0]} color="#2c2c34" low center shadow={false} />
-      <Cyl r={0.13} h={0.64} at={[-0.32, 0.13, 0]} rot={[Math.PI / 2, 0, 0]} color="#2c2c34" low center shadow={false} />
+      <Static>
+        <Box size={[1.1, 0.35, 0.6]} at={[0, 0.12, 0]} color={color} rounded={0.08} />
+        <Box size={[0.6, 0.28, 0.52]} at={[-0.08, 0.45, 0]} color="#dff3ff" rounded={0.06} />
+        <Cyl r={0.13} h={0.64} at={[0.32, 0.13, 0]} rot={[Math.PI / 2, 0, 0]} color="#2c2c34" low center shadow={false} />
+        <Cyl r={0.13} h={0.64} at={[-0.32, 0.13, 0]} rot={[Math.PI / 2, 0, 0]} color="#2c2c34" low center shadow={false} />
+      </Static>
     </group>
   );
 }
@@ -246,6 +251,7 @@ export function Tarp({ w, d, top, drop, at = [0, 0, 0], color = TARP_BLUE, hem =
   ];
   return (
     <group position={at}>
+      <Static>
       <Box size={[w + t * 2, 0.07, d + t * 2]} at={[0, top, 0]} color={color} rounded={0.03} />
       {/* skirts, with a darker hem */}
       {[-1, 1].map((s) => (
@@ -285,6 +291,7 @@ export function Tarp({ w, d, top, drop, at = [0, 0, 0], color = TARP_BLUE, hem =
             </group>
           );
         })}
+      </Static>
     </group>
   );
 }

@@ -4,6 +4,7 @@ import { Color, MeshStandardMaterial, type Mesh } from 'three';
 import { useMarketVisual } from '../../store/useSimStore';
 import { Workers, type Lane } from '../agents';
 import { Box, Cyl, Dome, Tree, GEO } from '../kit';
+import { Static } from '../Static';
 import { ACTIVITY_INTENSITY, BEACON, createMotion, MotionContext } from '../motion';
 import { FlagMast } from './FlagMast';
 
@@ -65,9 +66,10 @@ export function Exchange() {
   return (
     <MotionContext.Provider value={motion}>
       <group>
+        {[-5.6, 5.6].flatMap((x) => [-5.6, 5.6].map((z) => <Tree key={`${x}${z}`} at={[x, 0.08, z]} size={0.9} />))}
+        <Static>
         {/* plaza */}
         <Box size={[14, 0.08, 14]} color="#efe6d0" shadow={false} />
-        {[-5.6, 5.6].flatMap((x) => [-5.6, 5.6].map((z) => <Tree key={`${x}${z}`} at={[x, 0.08, z]} size={0.9} />))}
         {/* stepped podium */}
         <Box size={[9.4, 0.35, 9.4]} at={[0, 0.08, 0]} color="#d9cfb8" rounded={0.08} />
         <Box size={[8.6, 0.35, 8.6]} at={[0, 0.43, 0]} color="#e6dcc4" rounded={0.08} />
@@ -88,6 +90,7 @@ export function Exchange() {
         <Cyl r={2.6} h={0.2} at={[0, 5.6, 0]} color={GREEN} />
         <Dome r={2.4} at={[0, 5.8, 0]} color="#f2c14e" />
         <Cyl r={0.12} h={0.9} at={[0, 8.1, 0]} color="#e0b040" />
+        </Static>
         <mesh ref={beacon} geometry={GEO.ball} material={beaconMat} position={[0, 9.2, 0]} />
 
         {/* the market flag at the front corner of the plaza */}

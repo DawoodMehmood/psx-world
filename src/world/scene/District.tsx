@@ -9,6 +9,7 @@ import { useWorldStore } from '../../store/useWorldStore';
 import { FlagMast } from '../buildings/FlagMast';
 import { Antenna } from '../buildings/TechCampus';
 import { Box, Car, Cone, Cyl, GEO, mat, Rope, type Vec3 } from '../kit';
+import { Static } from '../Static';
 import { ACTIVITY_INTENSITY, agentCount, BEACON, createMotion, MotionContext, useMotion } from '../motion';
 
 /*
@@ -132,8 +133,10 @@ function Lamp({ at }: { at: Vec3 }) {
   });
   return (
     <group position={at}>
-      <Cyl r={0.12} h={0.15} color="#5f6a70" />
-      <Cyl r={0.05} h={LAMP_H} color="#5f6a70" low />
+      <Static>
+        <Cyl r={0.12} h={0.15} color="#5f6a70" />
+        <Cyl r={0.05} h={LAMP_H} color="#5f6a70" low />
+      </Static>
       <mesh geometry={GEO.ball} material={glow} position={[0, LAMP_H + 0.12, 0]} scale={0.18} />
     </group>
   );
@@ -192,10 +195,12 @@ function Fountain() {
   const ring = [0, 1, 2, 3, 4, 5].map((i) => (i / 6) * Math.PI * 2);
   return (
     <group>
-      <Cyl r={1.8} h={0.4} color="#d9d2c0" />
-      <Cyl r={1.6} h={0.05} at={[0, 0.38, 0]} color="#7cc8f0" shadow={false} />
-      <Cyl r={0.7} h={0.65} at={[0, 0.4, 0]} color="#e6dfcf" />
-      <Cyl r={0.6} h={0.05} at={[0, 1.02, 0]} color="#7cc8f0" shadow={false} />
+      <Static>
+        <Cyl r={1.8} h={0.4} color="#d9d2c0" />
+        <Cyl r={1.6} h={0.05} at={[0, 0.38, 0]} color="#7cc8f0" shadow={false} />
+        <Cyl r={0.7} h={0.65} at={[0, 0.4, 0]} color="#e6dfcf" />
+        <Cyl r={0.6} h={0.05} at={[0, 1.02, 0]} color="#7cc8f0" shadow={false} />
+      </Static>
       <mesh
         ref={(el) => {
           jets.current[0] = el;
@@ -230,21 +235,23 @@ function FlareTower({ color }: { color: string }) {
   });
   return (
     <group>
-      <Box size={[1.4, 0.3, 1.4]} color="#7b7368" />
-      {[
-        [0.45, 0.45],
-        [-0.45, 0.45],
-        [-0.45, -0.45],
-        [0.45, -0.45],
-      ].map(([x, z]) => (
-        <Rope key={`${x}${z}`} from={[x, 0.3, z]} to={[x * 0.25, 5.6, z * 0.25]} color="#d8463b" r={0.06} />
-      ))}
-      {[1.6, 3.2, 4.6].map((y) => {
-        const a = 0.45 - (0.45 - 0.11) * ((y - 0.3) / 5.3);
-        return <Box key={y} size={[a * 2 + 0.1, 0.1, a * 2 + 0.1]} at={[0, y, 0]} color="#f4f1ea" shadow={false} />;
-      })}
-      <Cyl r={0.2} h={0.6} at={[0, 5.5, 0]} color="#5f584f" />
-      <Cyl r={0.22} h={0.1} at={[0, 5.9, 0]} color={color} shadow={false} />
+      <Static>
+        <Box size={[1.4, 0.3, 1.4]} color="#7b7368" />
+        {[
+          [0.45, 0.45],
+          [-0.45, 0.45],
+          [-0.45, -0.45],
+          [0.45, -0.45],
+        ].map(([x, z]) => (
+          <Rope key={`${x}${z}`} from={[x, 0.3, z]} to={[x * 0.25, 5.6, z * 0.25]} color="#d8463b" r={0.06} />
+        ))}
+        {[1.6, 3.2, 4.6].map((y) => {
+          const a = 0.45 - (0.45 - 0.11) * ((y - 0.3) / 5.3);
+          return <Box key={y} size={[a * 2 + 0.1, 0.1, a * 2 + 0.1]} at={[0, y, 0]} color="#f4f1ea" shadow={false} />;
+        })}
+        <Cyl r={0.2} h={0.6} at={[0, 5.5, 0]} color="#5f584f" />
+        <Cyl r={0.22} h={0.1} at={[0, 5.9, 0]} color={color} shadow={false} />
+      </Static>
       <group ref={flame} position={[0, 6.1, 0]}>
         <mesh material={glow} position={[0, 0.4, 0]}>
           <coneGeometry args={[0.35, 0.8, 6]} />
@@ -263,19 +270,21 @@ function WaterTower({ color }: { color: string }) {
   });
   return (
     <group>
-      {[
-        [0.8, 0.8],
-        [-0.8, 0.8],
-        [-0.8, -0.8],
-        [0.8, -0.8],
-      ].map(([x, z]) => (
-        <Rope key={`${x}${z}`} from={[x, 0, z]} to={[x * 0.7, 3.4, z * 0.7]} color="#8a8174" r={0.08} />
-      ))}
-      <Box size={[1.3, 0.08, 0.08]} at={[0, 1.6, 0.68]} color="#8a8174" shadow={false} />
-      <Box size={[0.08, 0.08, 1.3]} at={[0.68, 1.6, 0]} color="#8a8174" shadow={false} />
-      <Cyl r={1.1} h={1.6} at={[0, 3.4, 0]} color="#e6e1d6" />
-      <Cyl r={1.12} h={0.3} at={[0, 4.0, 0]} color={color} />
-      <Cone r={1.2} h={0.7} at={[0, 5.0, 0]} color="#bdb39f" />
+      <Static>
+        {[
+          [0.8, 0.8],
+          [-0.8, 0.8],
+          [-0.8, -0.8],
+          [0.8, -0.8],
+        ].map(([x, z]) => (
+          <Rope key={`${x}${z}`} from={[x, 0, z]} to={[x * 0.7, 3.4, z * 0.7]} color="#8a8174" r={0.08} />
+        ))}
+        <Box size={[1.3, 0.08, 0.08]} at={[0, 1.6, 0.68]} color="#8a8174" shadow={false} />
+        <Box size={[0.08, 0.08, 1.3]} at={[0.68, 1.6, 0]} color="#8a8174" shadow={false} />
+        <Cyl r={1.1} h={1.6} at={[0, 3.4, 0]} color="#e6e1d6" />
+        <Cyl r={1.12} h={0.3} at={[0, 4.0, 0]} color={color} />
+        <Cone r={1.2} h={0.7} at={[0, 5.0, 0]} color="#bdb39f" />
+      </Static>
       <group ref={lamp} position={[0, 5.7, 0]}>
         <Cyl r={0.12} h={0.2} color="#5f584f" />
         <Box size={[0.4, 0.14, 0.08]} at={[0.2, 0.1, 0]} color="#ffb340" glow={1.2} shadow={false} />

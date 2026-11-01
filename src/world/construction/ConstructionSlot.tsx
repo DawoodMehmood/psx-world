@@ -4,6 +4,7 @@ import type { Group } from 'three';
 import type { SlotState } from '../../engine/types';
 import { Workers } from '../agents';
 import { Box, Cyl, Tarp, type Vec3 } from '../kit';
+import { Static } from '../Static';
 import { useMotion } from '../motion';
 
 interface Props {
@@ -44,7 +45,7 @@ export function ConstructionSlot({ slot, at, w, d, h, crane, children, partial }
     <group>
       <group position={[x, 0, z]}>
         {slot.stage === 'STAKED' && (
-          <>
+          <Static>
             {corners.map(([cx, cz]) => (
               <group key={`${cx}${cz}`}>
                 <Box size={[0.08, 0.6, 0.08]} at={[cx, 0, cz]} color={STAKE} />
@@ -55,19 +56,21 @@ export function ConstructionSlot({ slot, at, w, d, h, crane, children, partial }
             <Box size={[w, 0.03, 0.03]} at={[0, 0.4, -d / 2]} color="#ffffff" shadow={false} />
             <Box size={[0.03, 0.03, d]} at={[w / 2, 0.4, 0]} color="#ffffff" shadow={false} />
             <Box size={[0.03, 0.03, d]} at={[-w / 2, 0.4, 0]} color="#ffffff" shadow={false} />
-          </>
+          </Static>
         )}
         {slot.stage === 'FOUNDATION' && (
-          <>
+          <Static>
             <Box size={[w, 0.2, d]} color={CONCRETE} />
             {rebar(w).flatMap((rx) =>
               [-d / 4, d / 4].map((rz) => <Cyl key={`${rx}${rz}`} r={0.03} h={0.5} at={[rx, 0.2, rz]} color="#5b4a3a" low shadow={false} />),
             )}
-          </>
+          </Static>
         )}
         {slot.stage === 'FRAME' && (
           <>
-            <Box size={[w, 0.2, d]} color={CONCRETE} />
+            <Static>
+              <Box size={[w, 0.2, d]} color={CONCRETE} />
+            </Static>
             <group position={[0, 0.2, 0]}>{partial}</group>
             <Scaffold w={w + 0.3} d={d + 0.3} h={h} />
           </>
@@ -77,8 +80,10 @@ export function ConstructionSlot({ slot, at, w, d, h, crane, children, partial }
         {slot.paused && slot.stage === 'FRAME' && <Tarp w={w + 0.4} d={d + 0.4} top={h + 0.25} drop={h * 0.55} />}
         {/* building materials stacked by the site */}
         <group position={[w / 2 - 0.4, 0, d / 2 + 0.35]}>
-          <Box size={[0.8, 0.12, 0.3]} color="#c8935a" />
-          <Box size={[0.8, 0.12, 0.3]} at={[0, 0.12, 0]} color="#b98450" />
+          <Static>
+            <Box size={[0.8, 0.12, 0.3]} color="#c8935a" />
+            <Box size={[0.8, 0.12, 0.3]} at={[0, 0.12, 0]} color="#b98450" />
+          </Static>
         </group>
         {working && (
           <Workers
@@ -106,10 +111,12 @@ function ReservedPad({ at, w, d }: { at: [number, number]; w: number; d: number 
   ];
   return (
     <group position={[at[0], 0, at[1]]}>
-      <Box size={[w, 0.03, d]} color="#e4dccb" shadow={false} />
-      {pegs.map(([px, pz]) => (
-        <Box key={`${px}${pz}`} size={[0.1, 0.25, 0.1]} at={[px, 0, pz]} color="#c9b27a" shadow={false} />
-      ))}
+      <Static>
+        <Box size={[w, 0.03, d]} color="#e4dccb" shadow={false} />
+        {pegs.map(([px, pz]) => (
+          <Box key={`${px}${pz}`} size={[0.1, 0.25, 0.1]} at={[px, 0, pz]} color="#c9b27a" shadow={false} />
+        ))}
+      </Static>
     </group>
   );
 }
@@ -131,6 +138,7 @@ function Scaffold({ w, d, h }: { w: number; d: number; h: number }) {
   const levels = Math.max(1, Math.round(h / 0.7));
   return (
     <group position={[0, 0.2, 0]}>
+      <Static>
       {poles.map(([px, pz]) => (
         <Box key={`${px}${pz}`} size={[0.06, h, 0.06]} at={[px, 0, pz]} color={SCAFFOLD} shadow={false} />
       ))}
@@ -145,6 +153,7 @@ function Scaffold({ w, d, h }: { w: number; d: number; h: number }) {
           </group>
         );
       })}
+      </Static>
     </group>
   );
 }
@@ -161,16 +170,20 @@ export function TowerCrane({ at, height, working }: { at: Vec3; height: number; 
   });
   return (
     <group position={at}>
-      <Box size={[0.7, 0.25, 0.7]} color="#6d675f" />
-      <Box size={[0.32, height, 0.32]} at={[0, 0.25, 0]} color="#f2b632" />
-      {Array.from({ length: Math.floor(height / 0.8) }, (_, i) => (
-        <Box key={i} size={[0.36, 0.05, 0.36]} at={[0, 0.5 + i * 0.8, 0]} color="#c98e1f" shadow={false} />
-      ))}
+      <Static>
+        <Box size={[0.7, 0.25, 0.7]} color="#6d675f" />
+        <Box size={[0.32, height, 0.32]} at={[0, 0.25, 0]} color="#f2b632" />
+        {Array.from({ length: Math.floor(height / 0.8) }, (_, i) => (
+          <Box key={i} size={[0.36, 0.05, 0.36]} at={[0, 0.5 + i * 0.8, 0]} color="#c98e1f" shadow={false} />
+        ))}
+      </Static>
       <group ref={jib} position={[0, height + 0.25, 0]}>
-        <Box size={[0.45, 0.45, 0.45]} at={[0, 0, 0]} color="#f2b632" />
-        <Box size={[3.4, 0.18, 0.22]} at={[1.5, 0.3, 0]} color="#f2b632" />
-        <Box size={[1.2, 0.18, 0.22]} at={[-0.7, 0.3, 0]} color="#f2b632" />
-        <Box size={[0.45, 0.35, 0.4]} at={[-1.2, 0.05, 0]} color="#8a8174" />
+        <Static>
+          <Box size={[0.45, 0.45, 0.45]} at={[0, 0, 0]} color="#f2b632" />
+          <Box size={[3.4, 0.18, 0.22]} at={[1.5, 0.3, 0]} color="#f2b632" />
+          <Box size={[1.2, 0.18, 0.22]} at={[-0.7, 0.3, 0]} color="#f2b632" />
+          <Box size={[0.45, 0.35, 0.4]} at={[-1.2, 0.05, 0]} color="#8a8174" />
+        </Static>
         <group position={[2.6, 0.3, 0]}>
           <Box size={[0.02, 1.2, 0.02]} at={[0, -1.2, 0]} color="#3a3a3a" shadow={false} />
           <group ref={hook} position={[0, -1.2, 0]}>
