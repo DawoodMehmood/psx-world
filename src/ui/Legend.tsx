@@ -1,26 +1,15 @@
 import { useEffect, type ReactNode } from 'react';
-import { BEACON } from '../world/motion';
 import { useWorldStore } from '../store/useWorldStore';
 
-/** Three tiny masts with the flag high, half and low: the direction channel. */
-function FlagIcon() {
+/** A sunlit patch and a cloud-shadow patch: the direction channel. */
+function PoolIcon() {
   return (
     <svg viewBox="0 0 36 22" width="36" height="22" aria-hidden="true">
-      {[
-        [5, 3],
-        [17, 8],
-        [29, 13],
-      ].map(([x, y]) => (
-        <g key={x}>
-          <line x1={x} y1={2} x2={x} y2={21} stroke="currentColor" strokeWidth={1.5} />
-          <rect x={x + 1} y={y} width={6} height={5} rx={1} fill="#e8524a" />
-        </g>
-      ))}
+      <ellipse cx="10" cy="11" rx="9" ry="6" fill="#ffe27a" />
+      <ellipse cx="26" cy="11" rx="9" ry="6" fill="#2b3a5c" opacity="0.55" />
     </svg>
   );
 }
-
-const Dot = ({ color }: { color: string }) => <i className="dot" style={{ background: color }} />;
 
 function Row({ icon, title, children }: { icon: ReactNode; title: string; children: ReactNode }) {
   return (
@@ -69,26 +58,14 @@ export function Legend() {
       <h2>How to read the city</h2>
 
       <h3>Each company</h3>
-      <Row icon={<FlagIcon />} title="Flag on the mast: today">
-        High when the price is up today, half-mast when flat, low when down.
-      </Row>
-      <Row
-        icon={
-          <span className="swatches">
-            <Dot color={BEACON.UP_HARD} />
-            <Dot color={BEACON.FLAT} />
-            <Dot color={BEACON.DOWN_HARD} />
-          </span>
-        }
-        title="Light on top of the mast"
-      >
-        Warm orange when up, white when flat, cool blue when down. The same colors are used for districts and the whole market.
+      <Row icon={<PoolIcon />} title="Light on the ground: today">
+        A warm sunlit patch over the plot when the price is up today, a cloud shadow when it is down, plain daylight when flat. The same light and shade appears over a district's park and the Exchange plaza for how many companies are up.
       </Row>
       <Row icon={<span className="glyph">»</span>} title="Movement: trading activity">
         More people, vehicles and machines, moving faster, when volume is high. Busy is not the same as up: a falling stock can be frantic.
       </Row>
       <Row icon={<span className="glyph">≈</span>} title="Rhythm: volatility">
-        Machines stutter, the flag flaps hard and the light flickers when the price swings around.
+        People, vehicles and machines run instead of stroll when the price swings around.
       </Row>
       <Row icon={<span className="glyph">▲</span>} title="The site: size and health">
         A bigger market cap builds: cranes, new buildings on reserved pads, then a bigger site; a falling one winds buildings down under tarps. Health is separate: a weak company idles machines, puts up TO LET boards, cones off bays and lets weeds grow.
@@ -102,13 +79,13 @@ export function Legend() {
       </div>
 
       <h3>Each district (its park)</h3>
-      <Row icon={<span className="glyph">✦</span>} title="Landmark, lamps, flag">
-        The landmark works harder when the sector is busy. Lamps glow warm when most of its companies are up and cool when most are down; the district flag follows the same balance. Bunting goes up only when the whole sector rallies.
+      <Row icon={<span className="glyph">✦</span>} title="Landmark and lamps">
+        The landmark works harder when the sector is busy. Lamps shine bright when most of its companies are up and dim when most are down, with a sunlit or shaded patch over the park. Bunting goes up only when the whole sector rallies.
       </Row>
 
       <h3>The whole market</h3>
       <Row icon={<span className="glyph">☼</span>} title="Exchange and sky">
-        The Exchange beacon and the big flag on its plaza follow the whole market; its plaza fills up when trading is busy. The sky warms in a broad rally, clouds over in a broad selloff and rains when the market is stormy.
+        The Exchange's dome light and the light over its plaza follow the whole market; its plaza fills up when trading is busy. The sky warms in a broad rally, clouds over in a broad selloff and rains when the market is stormy.
       </Row>
 
       <p className="legend-note">Building height comes from company size, never from price.</p>

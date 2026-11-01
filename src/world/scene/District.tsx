@@ -1,45 +1,37 @@
 import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Color, MeshStandardMaterial, type Group, type Mesh } from 'three';
+import { MeshStandardMaterial, type Group, type Mesh } from 'three';
 import { center, districtRect, LOT_SIZE, parkRect } from '../../config/layout';
 import type { SectorDefinition, SectorId } from '../../config/sectors';
 import type { SectorMood } from '../../engine/types';
 import { useSectorVisual } from '../../store/useSimStore';
 import { useWorldStore } from '../../store/useWorldStore';
-import { FlagMast } from '../buildings/FlagMast';
 import { Antenna } from '../buildings/TechCampus';
 import { Box, Car, Cone, Cyl, GEO, mat, Rope, type Vec3 } from '../kit';
 import { Static } from '../Static';
-import { ACTIVITY_INTENSITY, agentCount, BEACON, createMotion, MotionContext, useMotion } from '../motion';
+import { glowFor } from '../../engine/visual';
+import { LightPool } from '../effects/LightPool';
+import { ACTIVITY_INTENSITY, agentCount, createMotion, MotionContext, useMotion } from '../motion';
 
 /*
  * A district's shared life (SPEC §11), in its park: a landmark that works
- * harder when the sector is busy, lamp posts that glow warm when the sector is
- * up and cool when it's down, a district flag that follows breadth, bunting
- * when the whole sector rallies, and cars on the district roads.
+ * harder when the sector is busy, lamp posts that glow bright when the sector
+ * is up and dim when it's down, a sunlit or shaded patch over the park,
+ * bunting when the whole sector rallies, and cars on the district roads.
  */
 
-/** Lamp posts on three diagonals of the park circle; the fourth (toward the camera) holds the district flag. */
+/** Lamp posts on the four diagonals of the park circle; the bunting is strung between them. */
 const LAMPS: [number, number][] = [
   [-2.2, -2.2],
   [2.2, -2.2],
+  [2.2, 2.2],
   [-2.2, 2.2],
 ];
-const FLAG_SPOT: Vec3 = [3.1, 0, 3.1];
 const LAMP_H = 2.2;
-
-function beaconFor(breadth: number): string {
-  if (breadth >= 0.67) return BEACON.UP_HARD;
-  if (breadth > 0) return BEACON.UP;
-  if (breadth <= -0.67) return BEACON.DOWN_HARD;
-  if (breadth < 0) return BEACON.DOWN;
-  return BEACON.FLAT;
-}
 
 export function District({ sector }: { sector: SectorDefinition }) {
   const state = useSectorVisual(sector.id);
   const motion = useMemo(createMotion, []);
-  const beaconTarget = useMemo(() => new Color(), []);
   const target = useRef(state);
   target.current = state;
   useFrame((_, frameDt) => {
@@ -47,8 +39,8 @@ export function District({ sector }: { sector: SectorDefinition }) {
     const s = target.current;
     const k = 1 - Math.exp(-dt * 2);
     motion.intensity += (ACTIVITY_INTENSITY[s.activity] - motion.intensity) * k;
-    motion.flag += (0.5 + s.breadth * 0.46 - motion.flag) * (1 - Math.exp(-dt * 1.4));
-    motion.beacon.lerp(beaconTarget.set(beaconFor(s.breadth)), k);
+    motion.pool += (s.breadth - motion.pool) * (1 - Math.exp(-dt * 1.4));
+    motion.jitter = glowFor(s.breadth);
     motion.speed = 0.3 + motion.intensity * 1.2;
     motion.t += dt * motion.speed;
   });
@@ -77,12 +69,12 @@ export function District({ sector }: { sector: SectorDefinition }) {
           <planeGeometry args={[LOT_SIZE, LOT_SIZE]} />
           <meshBasicMaterial transparent opacity={0} depthWrite={false} />
         </mesh>
+        <LightPool at={[0, 0.14, 0]} w={LOT_SIZE} d={LOT_SIZE} />
         {selected && <ParkRing color={sector.color} />}
         <Landmark id={sector.id} color={sector.color} />
         {LAMPS.map(([x, z]) => (
           <Lamp key={`${x}${z}`} at={[x, 0, z]} />
         ))}
-        <FlagMast at={FLAG_SPOT} color={sector.color} />
         <Bunting mood={state.mood} color={sector.color} />
       </group>
       <DistrictTraffic id={sector.id} />
@@ -123,13 +115,13 @@ function Landmark({ id, color }: { id: SectorId; color: string }) {
   }
 }
 
-/** Street lamp whose globe takes the district's beacon color. */
+/** Street lamp whose globe glows bright when the district is up and dim when it is down. */
 function Lamp({ at }: { at: Vec3 }) {
   const motion = useMotion();
-  const glow = useMemo(() => new MeshStandardMaterial({ color: '#ffffff', emissive: '#ffffff', emissiveIntensity: 0.8, flatShading: true }), []);
+  const glow = useMemo(() => new MeshStandardMaterial({ color: '#ffe3a0', emissive: '#ffd36b', emissiveIntensity: 0.8, flatShading: true }), []);
+  // The district's motion carries its lamp glow (0–1) in `jitter`, which a district has no other use for.
   useFrame(() => {
-    glow.color.copy(motion.beacon);
-    glow.emissive.copy(motion.beacon);
+    glow.emissiveIntensity = 0.1 + motion.jitter * 1.3;
   });
   return (
     <group position={at}>
@@ -142,12 +134,12 @@ function Lamp({ at }: { at: Vec3 }) {
   );
 }
 
-/** Pennant strings between the lamps and the flag, only while the whole sector rallies; they sway with activity. */
+/** Pennant strings between the lamps, only while the whole sector rallies; they sway with activity. */
 function Bunting({ mood, color }: { mood: SectorMood; color: string }) {
   const motion = useMotion();
   const group = useRef<Group>(null);
   const shown = useRef(0);
-  const posts: [number, number][] = [LAMPS[0], LAMPS[1], [FLAG_SPOT[0], FLAG_SPOT[2]], LAMPS[2]];
+  const posts = LAMPS;
   const colors = [color, '#ffd23f', '#ffffff', '#e8524a'];
   useFrame((_, frameDt) => {
     const g = group.current;

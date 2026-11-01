@@ -1,22 +1,23 @@
 import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Color, type Group } from 'three';
+import type { Group } from 'three';
 import { siteTier, type CompanyDefinition } from '../config/companies';
 import { SECTOR_BY_ID } from '../config/sectors';
 import { LOT_SIZE, lotBackCorner } from '../config/layout';
 import { effectiveCompany, useCompanyVisual, useSimStore } from '../store/useSimStore';
 import { useWorldStore } from '../store/useWorldStore';
 import { ARCHETYPES, archetypeHeight } from './buildings';
-import { FlagMast } from './buildings/FlagMast';
 import { EventEffects } from './effects/EventEffects';
 import { HaltTape } from './effects/HaltTape';
+import { LightPool } from './effects/LightPool';
 import { Box } from './kit';
+import { pace } from '../engine/visual';
 import { createMotion, MotionContext } from './motion';
 import { ReservedLand, SiteExpansion } from './site';
 
 /**
  * One company's lot: its current site (as deep as its tier) with buildings,
- * flag, effects and selection ring, plus the reserved land in front of it that
+ * light pool, effects and selection ring, plus the reserved land in front of it that
  * it can grow into. Everything is drawn in site coordinates: origin at the
  * lot's back corner, the site in +x and +z (toward the camera).
  */
@@ -40,23 +41,20 @@ export function CompanyPlot({ company, index }: { company: CompanyDefinition; in
   const seed = index * 17 + 3;
   const motion = useMemo(createMotion, []);
   if (import.meta.env.DEV) ((window as unknown as { __motion: Record<string, unknown> }).__motion ??= {})[company.ticker] = motion;
-  const beaconTarget = useMemo(() => new Color(), []);
   const target = useRef(visual);
   target.current = visual;
 
-  useFrame(({ clock }, frameDt) => {
+  useFrame((_, frameDt) => {
     const dt = Math.min(frameDt, 0.1);
     const v = target.current;
     const k = 1 - Math.exp(-dt * 2.5);
     motion.intensity += (v.intensity - motion.intensity) * k;
     motion.jitter += (v.jitter - motion.jitter) * k;
-    motion.flag += (v.flag - motion.flag) * (1 - Math.exp(-dt * 1.6));
-    motion.beacon.lerp(beaconTarget.set(v.beacon), k);
+    // A halt freezes Direction too: nothing traded, so no sunlit or shaded patch.
+    motion.pool += ((v.halted ? 0 : v.pool) - motion.pool) * (1 - Math.exp(-dt * 1.6));
     motion.halted = v.halted;
-    // Volatile plots stutter: speed lurches up and down instead of running smoothly.
-    const T = clock.elapsedTime;
-    const stutter = motion.jitter > 0.02 ? Math.max(0, 1 + motion.jitter * 0.9 * (Math.sin(T * 5.3 + seed) + Math.sin(T * 2.1 + seed * 1.3))) : 1;
-    const speed = v.halted ? 0 : (0.3 + motion.intensity * 1.2) * stutter;
+    // Frantic plots run: people and vehicles move faster, the more irregular the price.
+    const speed = v.halted ? 0 : (0.3 + motion.intensity * 1.2) * pace(motion.jitter);
     motion.speed += (speed - motion.speed) * (1 - Math.exp(-dt * 6));
     motion.t += dt * motion.speed;
   });
@@ -87,13 +85,12 @@ export function CompanyPlot({ company, index }: { company: CompanyDefinition; in
             document.body.style.cursor = '';
           }}
         >
+          <LightPool at={[LOT_SIZE / 2, 0.215, depth / 2]} w={LOT_SIZE} d={depth} />
           {/* site pad with a curb */}
           <Box size={[LOT_SIZE, 0.14, depth]} at={[LOT_SIZE / 2, 0, depth / 2]} color="#d6cdb8" rounded={0.06} shadow={false} />
           <Box size={[LOT_SIZE - 0.4, 0.06, depth - 0.4]} at={[LOT_SIZE / 2, 0.12, depth / 2]} color={sector.pad} shadow={false} />
           <group position={[0, 0.18, 0]}>
             {buildings}
-            {/* the front-left corner: nothing on the site stands in front of it */}
-            <FlagMast at={[0.7, 0, depth - 0.7]} color={company.accent} />
             <group position={[LOT_SIZE / 2, 0, depth / 2]}>
               <EventEffects events={events} top={top} accent={company.accent} size={Math.min(depth, LOT_SIZE)} />
               {visual.halted && <HaltTape w={LOT_SIZE} d={depth} />}

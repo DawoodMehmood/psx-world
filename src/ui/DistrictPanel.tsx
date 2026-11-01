@@ -109,11 +109,11 @@ function explainSector(s: SectorState, members: CompanyState[]): string[] {
   const down = members.filter((c) => DIRECTION.indexOf(c.direction) < 2).map((c) => c.ticker);
   const list = (xs: string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}` : xs[0]);
   const why: string[] = [];
-  if (s.mood === 'RALLY') why.push(`Rally: ${list(up)} are all up today, so bunting is out and the lamps glow warm.`);
-  else if (s.mood === 'SELLOFF') why.push(`Selloff: ${list(down)} are all down today, so the lamps glow cool and the district flag is low.`);
-  else if (up.length && down.length) why.push(`Mixed: ${list(up)} up, ${list(down)} down, so the district flag sits near half-mast.`);
+  if (s.mood === 'RALLY') why.push(`Rally: ${list(up)} are all up today, so bunting is out and the lamps shine bright.`);
+  else if (s.mood === 'SELLOFF') why.push(`Selloff: ${list(down)} are all down today, so the lamps are dim and the park lies in shadow.`);
+  else if (up.length && down.length) why.push(`Mixed: ${list(up)} up, ${list(down)} down, so the park sits in plain daylight.`);
   else if (up.length) why.push(`Leaning up: ${list(up)} ${up.length > 1 ? 'are' : 'is'} up, but not the whole district, so no bunting.`);
-  else if (down.length) why.push(`Leaning down: ${list(down)} ${down.length > 1 ? 'are' : 'is'} down; the lamps cool a little.`);
+  else if (down.length) why.push(`Leaning down: ${list(down)} ${down.length > 1 ? 'are' : 'is'} down; the lamps dim a little.`);
   else why.push('Flat: no company is moving much today.');
   why.push(
     {

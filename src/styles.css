@@ -740,6 +740,25 @@ body {
     width: calc(100% - 24px);
     padding: 8px 10px 10px;
   }
+  /* The day pill and scenario picker share a row; the caption takes the full width below them, capped so the bar never swallows the map. */
+  .demo .caption {
+    flex-wrap: wrap;
+    row-gap: 6px;
+    font-size: 13px;
+  }
+  .demo .caption select {
+    margin-left: auto;
+    min-width: 0;
+    max-width: 62%;
+  }
+  .demo .caption .note {
+    order: 3;
+    flex: 1 1 100%;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+    overflow: hidden;
+  }
   .demo .controls {
     flex-wrap: wrap;
     row-gap: 8px;

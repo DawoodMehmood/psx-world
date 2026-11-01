@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ACTIVITY, DIRECTION, HEALTH, VOLATILITY } from '../src/engine/types';
-import { companyVisual, openBayCount, runningCount } from '../src/engine/visual';
+import { companyVisual, crewMax, glowFor, movingVehicles, openBayCount, pace, runningCount } from '../src/engine/visual';
 
 const base = { halted: false, activity: 'NORMAL', volatility: 'CALM', direction: 'FLAT', health: 'STEADY' } as const;
 
@@ -10,10 +10,8 @@ describe('companyVisual', () => {
     expect(xs).toEqual([0.1, 0.42, 0.72, 1]);
   });
 
-  it('maps direction to a flag height that rises with the move and a distinct beacon', () => {
-    const vs = DIRECTION.map((direction) => companyVisual({ ...base, direction }));
-    expect(vs.map((v) => v.flag)).toEqual([0.04, 0.27, 0.5, 0.73, 0.96]);
-    expect(new Set(vs.map((v) => v.beacon)).size).toBe(DIRECTION.length);
+  it('maps direction to a light pool: shade when down, none when flat, sun when up', () => {
+    expect(DIRECTION.map((direction) => companyVisual({ ...base, direction }).pool)).toEqual([-1, -0.5, 0, 0.5, 1]);
   });
 
   it('maps volatility to jitter', () => {
@@ -52,5 +50,40 @@ describe('decline rules', () => {
     expect(openBayCount(0, 7)).toBe(3);
     expect(openBayCount(0, 1)).toBe(1);
     expect(openBayCount(1, 3)).toBe(2);
+  });
+});
+
+describe('movement and composition', () => {
+  it('runs faster the more frantic the price', () => {
+    expect(pace(0)).toBe(1);
+    expect(pace(0.45)).toBeGreaterThan(pace(0));
+    expect(pace(1)).toBeGreaterThan(pace(0.45));
+  });
+
+  it('fills open bays with vehicles: none when quiet, never more than are open, at least one once busy', () => {
+    expect(movingVehicles(0.1, 5)).toBe(0);
+    expect(movingVehicles(0.42, 5)).toBe(2);
+    expect(movingVehicles(1, 5)).toBe(5);
+    expect(movingVehicles(1, 2)).toBe(2);
+    expect(movingVehicles(0.4, 1)).toBe(1);
+  });
+
+  it('caps the crew by health before activity fills it', () => {
+    expect(crewMax(10, 4)).toBe(10);
+    expect(crewMax(10, 1)).toBe(6);
+    expect(crewMax(10, 0)).toBe(4);
+  });
+
+  it('lets a weak company’s busy day fill fewer bays than a healthy one’s', () => {
+    const busy = 1;
+    expect(movingVehicles(busy, openBayCount(0, 7))).toBeLessThan(movingVehicles(busy, openBayCount(3, 7)));
+  });
+
+  it('lights lamps and the Exchange dome more as breadth rises, and never goes fully dark', () => {
+    expect(glowFor(-1)).toBeCloseTo(0.15, 10);
+    expect(glowFor(0)).toBeGreaterThan(glowFor(-1));
+    expect(glowFor(1)).toBeCloseTo(1, 10);
+    expect(glowFor(-3)).toBeCloseTo(0.15, 10);
+    expect(glowFor(3)).toBeCloseTo(1, 10);
   });
 });

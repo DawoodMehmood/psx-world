@@ -72,15 +72,15 @@ export function explain(c: CompanyState, forced: boolean): string[] {
   const today = forced ? '' : ` (${pct(c.dayChangePct)} today)`;
   why.push(
     {
-      UP_HARD: `Flag at the top, beacon orange: up strongly${today}.`,
-      UP: `Flag raised, beacon warm: up${today}.`,
-      FLAT: `Flag at half-mast: about flat${today}.`,
-      DOWN: `Flag lowered, beacon cool: down${today}.`,
-      DOWN_HARD: `Flag near the bottom, beacon blue: down sharply${today}.`,
+      UP_HARD: `Bright sunlit patch over the plot: up strongly${today}.`,
+      UP: `Warm sunlit patch: up${today}.`,
+      FLAT: `Plain daylight: about flat${today}.`,
+      DOWN: `Cloud shadow over the plot: down${today}.`,
+      DOWN_HARD: `Deep cloud shadow: down sharply${today}.`,
     }[c.direction],
   );
   if (c.volatility !== 'CALM') {
-    why.push(c.volatility === 'WILD' ? 'Machines stutter and the beacon flickers: the price is swinging wildly.' : 'Machines run a little unevenly: the price is choppy.');
+    why.push(c.volatility === 'WILD' ? 'People and vehicles run: the price is swinging wildly.' : 'People and vehicles hurry a little: the price is choppy.');
   }
   const r20 = forced ? '' : ` (${pct(c.return20Pct)} over 20 days)`;
   const decline = DECLINE_LOOK[archetype][c.health];

@@ -7,7 +7,8 @@ import { Van, Workers, type Lane } from '../agents';
 import { Box, Cone, Cyl, GEO, mat, Rope, Tree, type Vec3 } from '../kit';
 import { Static } from '../Static';
 import { agentCount, useMotion } from '../motion';
-import { ActivityWindows, BAY_Z, BayLines, BayVehicles, BUILD_W, ClosedBay, CREW, closedByDecline, isBuilt, openBays, Slots, TIER_BAYS, ToLet, Weeds, type SlotDesign } from './shared';
+import { ActivityWindows, BAY_Z, BayLines, BayVehicles, BUILD_W, ClosedBay,  closedByDecline, isBuilt, openBays, Slots, TIER_BAYS, ToLet, Weeds, type SlotDesign } from './shared';
+import { crewMax } from '../../engine/visual';
 import type { ArchetypeProps } from './types';
 
 /*
@@ -178,7 +179,7 @@ export function TechCampus(props: ArchetypeProps) {
 
       <Slots designs={SLOTS} props={props} />
 
-      <Workers lanes={LANES.slice(0, tier).flat()} max={Math.round((4 + tier * 3) * CREW[h])} office />
+      <Workers lanes={LANES.slice(0, tier).flat()} max={crewMax(4 + tier * 3, h)} office />
       {h <= 0 && <Weeds depth={depth} seed={seed} colors={['#b5c76a', '#a3b85a', '#c3d27a']} />}
     </group>
   );

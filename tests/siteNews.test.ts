@@ -25,7 +25,8 @@ describe('siteNews', () => {
   });
 
   it('limits the line and counts the rest', () => {
-    expect(siteNewsLine(['a', 'b', 'c', 'd', 'e'])).toBe('Sites: a; b; c; +2 more.');
+    expect(siteNewsLine(['a', 'b', 'c', 'd', 'e'])).toBe('Sites: a; b; +3 more.');
+    expect(siteNewsLine(['a', 'b', 'c', 'd', 'e'], 3)).toBe('Sites: a; b; c; +2 more.');
     expect(siteNewsLine(['a'])).toBe('Sites: a.');
   });
 });

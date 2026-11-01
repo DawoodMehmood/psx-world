@@ -3,7 +3,8 @@ import { HEALTH } from '../../engine/types';
 import { CashVan, Workers, type Lane } from '../agents';
 import { Box, Car, Cyl, GEO, mat, Roof, Tree } from '../kit';
 import { Static } from '../Static';
-import { ActivityWindows, BAY_Z, BayLines, BayVehicles, ClosedBay, CREW, closedByDecline, openBays, Slots, TIER_BAYS, ToLet, Weeds, type SlotDesign } from './shared';
+import { ActivityWindows, BAY_Z, BayLines, BayVehicles, ClosedBay,  closedByDecline, openBays, Slots, TIER_BAYS, ToLet, Weeds, type SlotDesign } from './shared';
+import { crewMax } from '../../engine/visual';
 import type { ArchetypeProps } from './types';
 
 /*
@@ -156,7 +157,7 @@ export function BankComplex(props: ArchetypeProps) {
 
       <Slots designs={SLOTS} props={props} />
 
-      <Workers lanes={LANES.slice(0, tier).flat()} max={Math.round((5 + tier * 3) * CREW[h])} office />
+      <Workers lanes={LANES.slice(0, tier).flat()} max={crewMax(5 + tier * 3, h)} office />
       {h <= 0 && <Weeds depth={SITE_TIERS.bank[tier - 1].depth} seed={seed} />}
     </group>
   );

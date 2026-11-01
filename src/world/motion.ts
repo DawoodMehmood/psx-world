@@ -1,8 +1,7 @@
 import { createContext, useContext } from 'react';
-import { Color } from 'three';
-import { ACTIVITY_INTENSITY, BEACON, FLAG_HEIGHT, JITTER } from '../engine/visual';
+import { ACTIVITY_INTENSITY, JITTER, POOL } from '../engine/visual';
 
-export { ACTIVITY_INTENSITY, BEACON, FLAG_HEIGHT, JITTER };
+export { ACTIVITY_INTENSITY, JITTER, POOL };
 
 /**
  * Per-plot animation state, eased every frame toward targets derived from the
@@ -14,18 +13,17 @@ export interface PlotMotion {
   t: number;
   /** 0–1: how many agents and how fast (Activity). */
   intensity: number;
-  /** Current speed multiplier (0 when halted, stutters when volatile). */
+  /** Current speed multiplier (0 when halted, faster when frantic). */
   speed: number;
   /** 0–1: how irregular things are (Volatility). */
   jitter: number;
-  /** 0–1: flag height on the mast (Direction). */
-  flag: number;
+  /** −1…+1: the light pool, sunlit or shaded (Direction). */
+  pool: number;
   halted: boolean;
-  beacon: Color;
 }
 
 export function createMotion(): PlotMotion {
-  return { t: 0, intensity: 0.42, speed: 1, jitter: 0, flag: 0.5, halted: false, beacon: new Color(BEACON.FLAT) };
+  return { t: 0, intensity: 0.42, speed: 1, jitter: 0, pool: 0, halted: false };
 }
 
 const fallback = createMotion();

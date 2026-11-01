@@ -12,7 +12,7 @@ const EFFECTS: Partial<Record<EventType, (p: EffectProps) => React.JSX.Element>>
   BIG_UP: Fireworks,
   BIG_DOWN: Alarm,
   VOLUME_SPIKE: Spotlights,
-  NEW_HIGH: GoldRing,
+  NEW_HIGH: GoldBeam,
   NEW_LOW: RainCloud,
   RESUME: ResumePulse,
   DIVIDEND: CoinShower,
@@ -166,6 +166,21 @@ function Spotlights({ magnitude, size }: EffectProps) {
           </group>
         </group>
       ))}
+    </>
+  );
+}
+
+/** New 20-day high: a pillar of gold light into the sky (readable from anywhere on the map) with the golden crown above the plot. */
+function GoldBeam(props: EffectProps) {
+  const geo = useMemo(() => new CylinderGeometry(0.7, 1.4, 22, 20, 1, true).translate(0, 11, 0), []);
+  const material = useMemo(() => new MeshBasicMaterial({ color: '#ffd24a', transparent: true, opacity: 0.3, blending: AdditiveBlending, depthWrite: false, toneMapped: false }), []);
+  useFrame(({ clock }) => {
+    material.opacity = 0.26 + Math.sin(clock.elapsedTime * 2.2) * 0.05 + props.magnitude * 0.08;
+  });
+  return (
+    <>
+      <mesh geometry={geo} material={material} raycast={() => null} />
+      <GoldRing {...props} />
     </>
   );
 }

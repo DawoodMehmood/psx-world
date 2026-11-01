@@ -8,18 +8,20 @@ import { HEALTH, type Activity, type CompanyState, type Direction, type Volatili
 
 /** 0–1: how many agents and how fast (Activity). */
 export const ACTIVITY_INTENSITY: Record<Activity, number> = { QUIET: 0.1, NORMAL: 0.42, BUSY: 0.72, FRENZY: 1 };
-/** 0–1: flag height on the mast (Direction). */
-export const FLAG_HEIGHT: Record<Direction, number> = { DOWN_HARD: 0.04, DOWN: 0.27, FLAT: 0.5, UP: 0.73, UP_HARD: 0.96 };
+/**
+ * −1…+1: the light pool on a plot (Direction, DESIGN.md §6). Positive is a sunlit
+ * patch, negative a cloud shadow; flat is plain daylight. Light against shade
+ * reads at any zoom and does not rely on telling red from green.
+ */
+export const POOL: Record<Direction, number> = { DOWN_HARD: -1, DOWN: -0.5, FLAT: 0, UP: 0.5, UP_HARD: 1 };
 /** 0–1: how irregular things are (Volatility). */
 export const JITTER: Record<Volatility, number> = { CALM: 0, CHOPPY: 0.45, WILD: 1 };
-/** Warm when up, cool when down: the beacon backs up the flag so direction isn't color-only or position-only. */
-export const BEACON: Record<Direction, string> = {
-  DOWN_HARD: '#3d7bff',
-  DOWN: '#8fbcff',
-  FLAT: '#f4f1e8',
-  UP: '#ffd36b',
-  UP_HARD: '#ffa526',
-};
+
+/** Speed multiplier of everything that moves on a plot: strolling when calm, running when wild (Frantic, DESIGN.md §3.5). */
+export const pace = (jitter: number) => 1 + jitter * 0.9;
+
+/** Brightness 0–1 of a district's lamps and the Exchange's dome light from breadth −1…+1: lit when the sector is up, dim when down. */
+export const glowFor = (breadth: number) => 0.15 + 0.85 * Math.max(0, Math.min(1, (breadth + 1) / 2));
 
 /** Share of the full crew on site at each health level (STRUGGLING … THRIVING). */
 export const CREW = [0.35, 0.6, 1, 1, 1];
@@ -28,6 +30,12 @@ export const CREW = [0.35, 0.6, 1, 1, 1];
 export function runningCount(h: number, built: number): number {
   return h >= 2 ? built : h === 1 ? Math.max(1, built - 1) : 1;
 }
+
+/** Vehicles on the move: Health sets how many bays are open, Activity fills them (DESIGN.md §6). One waits parked when quiet. */
+export const movingVehicles = (intensity: number, openBays: number) => (intensity < 0.3 ? 0 : Math.max(1, Math.round(intensity * openBays)));
+
+/** People on a plot at most: the site's full crew scaled by health, then by activity. */
+export const crewMax = (base: number, healthIndex: number) => Math.round(base * CREW[healthIndex]);
 
 /** How many of `total` bays stay open (from the front); the rest are coned off. */
 export function openBayCount(h: number, total: number): number {
@@ -41,10 +49,8 @@ export interface CompanyVisual {
   intensity: number;
   /** 0–1 target for irregular motion. */
   jitter: number;
-  /** 0–1 target flag height. */
-  flag: number;
-  /** Target beacon color. */
-  beacon: string;
+  /** −1…+1 target light pool: sunlit or shaded. */
+  pool: number;
   /** Index into HEALTH, 0 = STRUGGLING. */
   healthIndex: number;
   /** Share of the full crew on site. */
@@ -57,8 +63,7 @@ export function companyVisual(c: Pick<CompanyState, 'halted' | 'activity' | 'vol
     halted: c.halted,
     intensity: ACTIVITY_INTENSITY[c.activity],
     jitter: JITTER[c.volatility],
-    flag: FLAG_HEIGHT[c.direction],
-    beacon: BEACON[c.direction],
+    pool: POOL[c.direction],
     healthIndex,
     crew: CREW[healthIndex],
   };

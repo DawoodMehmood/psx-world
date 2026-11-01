@@ -1,12 +1,13 @@
 import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Color, MeshStandardMaterial, type Mesh } from 'three';
+import { MeshStandardMaterial, type Mesh } from 'three';
 import { useMarketVisual } from '../../store/useSimStore';
 import { Workers, type Lane } from '../agents';
 import { Box, Cyl, Dome, Tree, GEO } from '../kit';
 import { Static } from '../Static';
-import { ACTIVITY_INTENSITY, BEACON, createMotion, MotionContext } from '../motion';
-import { FlagMast } from './FlagMast';
+import { glowFor } from '../../engine/visual';
+import { LightPool } from '../effects/LightPool';
+import { ACTIVITY_INTENSITY, createMotion, MotionContext } from '../motion';
 
 const GREEN = '#2e7d5b';
 
@@ -20,26 +21,15 @@ const PLAZA_LANES: Lane[] = [
   [-4.6, -5.4, 4.6, -5.4],
 ];
 
-/** Market breadth → the same warm/cool beacon colors a company's direction uses. */
-function beaconFor(breadth: number): string {
-  if (breadth >= 0.5) return BEACON.UP_HARD;
-  if (breadth >= 0.17) return BEACON.UP;
-  if (breadth <= -0.5) return BEACON.DOWN_HARD;
-  if (breadth <= -0.17) return BEACON.DOWN;
-  return BEACON.FLAT;
-}
-
 /**
  * The PSX Exchange landmark: stepped podium, colonnade, golden dome and a
- * beacon. It shows the whole market (SPEC §11): the beacon glows warm when
- * most of the market is up and cool when it's down, the big flag in front
- * rises and falls with market breadth, and the plaza fills with people as
- * trading gets busier.
+ * beacon. It shows the whole market (SPEC §11): the beacon shines bright when
+ * most of the market is up and dim when it's down, a sunlit or shaded patch
+ * lies over the plaza, and the plaza fills with people as trading gets busier.
  */
 export function Exchange() {
   const market = useMarketVisual();
   const motion = useMemo(createMotion, []);
-  const beaconTarget = useMemo(() => new Color(), []);
   const beacon = useRef<Mesh>(null);
   const beaconMat = useMemo(() => new MeshStandardMaterial({ color: '#ffe9a8', emissive: '#ffe9a8', emissiveIntensity: 1.4, flatShading: true }), []);
   const target = useRef(market);
@@ -51,14 +41,12 @@ export function Exchange() {
     const k = 1 - Math.exp(-dt * 2);
     motion.intensity += (ACTIVITY_INTENSITY[m.activity] - motion.intensity) * k;
     motion.jitter += ((m.stormy ? 0.6 : 0) - motion.jitter) * k;
-    motion.flag += (0.5 + m.breadth * 0.46 - motion.flag) * (1 - Math.exp(-dt * 1.4));
-    motion.beacon.lerp(beaconTarget.set(beaconFor(m.breadth)), k);
+    motion.pool += (m.breadth - motion.pool) * (1 - Math.exp(-dt * 1.4));
     motion.speed = 0.4 + motion.intensity;
     motion.t += dt * motion.speed;
     if (beacon.current) {
       beacon.current.scale.setScalar(0.35 + Math.sin(clock.elapsedTime * (1.2 + motion.intensity * 2.5)) * 0.04);
-      beaconMat.color.copy(motion.beacon);
-      beaconMat.emissive.copy(motion.beacon);
+      beaconMat.emissiveIntensity = 0.3 + glowFor(motion.pool) * 1.6;
     }
   });
 
@@ -93,10 +81,7 @@ export function Exchange() {
         </Static>
         <mesh ref={beacon} geometry={GEO.ball} material={beaconMat} position={[0, 9.2, 0]} />
 
-        {/* the market flag at the front corner of the plaza */}
-        <group position={[6.3, 0.08, 6.3]} scale={1.7}>
-          <FlagMast at={[0, 0, 0]} color={GREEN} />
-        </group>
+        <LightPool at={[0, 0.13, 0]} w={14} d={14} />
 
         <group position={[0, 0.08, 0]}>
           <Workers lanes={PLAZA_LANES} max={18} min={2} office />

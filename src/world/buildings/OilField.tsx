@@ -7,7 +7,8 @@ import { Tanker, Workers, type Lane } from '../agents';
 import { Box, Cone, Cyl, Roof, type Vec3 } from '../kit';
 import { Static } from '../Static';
 import { useMotion } from '../motion';
-import { BAY_Z, BayLines, BayVehicles, BUILD_W, ClosedBay, CREW, DOCK_X, isBuilt, openBays, runningCount, Slots, TIER_BAYS, Weeds, type SlotDesign } from './shared';
+import { BAY_Z, BayLines, BayVehicles, BUILD_W, ClosedBay,  DOCK_X, isBuilt, openBays, runningCount, Slots, TIER_BAYS, Weeds, type SlotDesign } from './shared';
+import { crewMax } from '../../engine/visual';
 import type { ArchetypeProps } from './types';
 
 /*
@@ -198,7 +199,7 @@ export function OilField(props: ArchetypeProps) {
 
       <Slots designs={SLOTS} props={props} />
 
-      <Workers lanes={LANES.slice(0, tier).flat()} max={Math.round((4 + tier * 3) * CREW[h])} />
+      <Workers lanes={LANES.slice(0, tier).flat()} max={crewMax(4 + tier * 3, h)} />
       {h <= 0 && <Weeds depth={SITE_TIERS.oil[tier - 1].depth} seed={seed} colors={DRY_SCRUB} />}
     </group>
   );
@@ -342,14 +343,14 @@ function Steam({ at }: { at: Vec3 }) {
   );
 }
 
-/** Flare stack: the flame grows with Activity and flickers when volatile; out when struggling. */
+/** Flare stack: the flame grows with Activity; out when struggling. */
 function Flare({ at, lit }: { at: [number, number]; lit: boolean }) {
   const motion = useMotion();
   const flame = useRef<Group>(null);
   const glow = useMemo(() => new MeshStandardMaterial({ color: '#ffb340', emissive: '#ff7a1a', emissiveIntensity: 1.2, flatShading: true }), []);
   useFrame(({ clock }) => {
     if (!flame.current) return;
-    const flicker = 1 + Math.sin(clock.elapsedTime * (9 + motion.jitter * 14)) * (0.08 + motion.jitter * 0.2);
+    const flicker = 1 + Math.sin(clock.elapsedTime * 9) * 0.08;
     const size = motion.halted ? 0.2 : (0.35 + motion.intensity * 0.9) * flicker;
     flame.current.scale.set(size, size * 1.6, size);
   });

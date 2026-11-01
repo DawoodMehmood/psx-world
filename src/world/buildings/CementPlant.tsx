@@ -7,7 +7,8 @@ import { MixerTruck, Workers, type Lane } from '../agents';
 import { Box, Cone, Cyl, GEO, mat, Roof, Rope, TARP_BLUE, type Vec3 } from '../kit';
 import { Static } from '../Static';
 import { agentCount, useMotion } from '../motion';
-import { BAY_Z, BayLines, BayVehicles, BUILD_W, ClosedBay, CREW, DOCK_X, isBuilt, openBays, runningCount, Slots, Weeds, type SlotDesign } from './shared';
+import { BAY_Z, BayLines, BayVehicles, BUILD_W, ClosedBay,  DOCK_X, isBuilt, openBays, runningCount, Slots, Weeds, type SlotDesign } from './shared';
+import { crewMax } from '../../engine/visual';
 import type { ArchetypeProps } from './types';
 
 /*
@@ -159,7 +160,7 @@ export function CementPlant(props: ArchetypeProps) {
       <Slots designs={SLOTS} props={props} />
 
       <BayVehicles bays={openBays(h, builtBays(slots)).map((b) => BAY_Z[b])} vehicle={() => <MixerTruck />} />
-      <Workers lanes={LANES.slice(0, tier).flat()} max={Math.round((4 + tier * 3) * CREW[h])} />
+      <Workers lanes={LANES.slice(0, tier).flat()} max={crewMax(4 + tier * 3, h)} />
     </group>
   );
 }
@@ -256,7 +257,7 @@ function LoadingWing({ bays, ...p }: ArchetypeProps & { bays: number[] }) {
  * toward the front-right, burner hood at the front end. A mothballed line has
  * a cold burner, no smoke, and its drum wrapped in a tarp.
  */
-function KilnLine({ line, scale, accent, seed, health, slots, bare = false }: ArchetypeProps & { line: number; bare?: boolean }) {
+function KilnLine({ line, scale, accent, health, slots, bare = false }: ArchetypeProps & { line: number; bare?: boolean }) {
   const towerH = 4 + scale * 1.5;
   const y = 1.15;
   const z = KILN_Z[line];
@@ -266,7 +267,7 @@ function KilnLine({ line, scale, accent, seed, health, slots, bare = false }: Ar
     <group>
       <group position={[KILN_CX, 0, z]}>
         <Kiln at={[0, y, 0]} length={KILN_LEN} r={0.5} piers={[-1.6, 0, 1.6]} color={bare ? '#c9c2b6' : accent} bare={bare} wrapped={mothballed} />
-        {!bare && <KilnGlow at={[KILN_LEN / 2 + 0.25, y - 0.55, 0]} seed={seed + line} cold={mothballed} />}
+        {!bare && <KilnGlow at={[KILN_LEN / 2 + 0.25, y - 0.55, 0]} cold={mothballed} />}
       </group>
       <Preheater z={z} h={bare ? towerH * 0.45 : towerH} accent={accent} stack={!bare} smoke={!bare && !mothballed} />
       {mothballed && (
@@ -343,13 +344,12 @@ function Kiln({ at, length, r, piers, color, bare = false, wrapped = false }: { 
   );
 }
 
-/** Burner hood at the kiln's low end; glows hotter with activity and sputters when volatile. Dark when `cold`. */
-function KilnGlow({ at, seed, cold = false }: { at: Vec3; seed: number; cold?: boolean }) {
+/** Burner hood at the kiln's low end; glows hotter with activity. Dark when `cold`. */
+function KilnGlow({ at, cold = false }: { at: Vec3; cold?: boolean }) {
   const motion = useMotion();
   const glow = useMemo(() => new MeshStandardMaterial({ color: '#ff7a1a', emissive: '#ff5a00', emissiveIntensity: 0.6, flatShading: true }), []);
-  useFrame(({ clock }) => {
-    const sputter = motion.jitter > 0 ? 0.6 + 0.4 * Math.sin(clock.elapsedTime * 13 + seed) : 1;
-    glow.emissiveIntensity = motion.halted ? 0.05 : (0.25 + motion.intensity * 1.6) * sputter;
+  useFrame(() => {
+    glow.emissiveIntensity = motion.halted ? 0.05 : 0.25 + motion.intensity * 1.6;
   });
   return (
     <group position={at}>

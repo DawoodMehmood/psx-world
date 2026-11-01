@@ -25,7 +25,7 @@ export function siteNews(before: Record<string, CompanyState>, after: Record<str
 }
 
 /** The line to show: a few items, with a count for the rest; empty when nothing changed. */
-export function siteNewsLine(news: string[], max = 3): string {
+export function siteNewsLine(news: string[], max = 2): string {
   if (!news.length) return '';
   const shown = news.slice(0, max).join('; ');
   return `Sites: ${shown}${news.length > max ? `; +${news.length - max} more` : ''}.`;

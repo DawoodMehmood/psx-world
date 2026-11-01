@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { CanvasTexture, Object3D, SRGBColorSpace, type Group, type InstancedMesh } from 'three';
 import { createRng } from '../../engine/rng';
 import { HEALTH, type SlotState } from '../../engine/types';
-import { CREW, openBayCount, runningCount } from '../../engine/visual';
+import { CREW, movingVehicles, openBayCount, runningCount } from '../../engine/visual';
 import { ConstructionSlot } from '../construction/ConstructionSlot';
 import { Box, Cone, Cyl, GEO, mat, type Vec3 } from '../kit';
 import { useMotion } from '../motion';
@@ -159,7 +159,7 @@ export function BayVehicles({ bays, vehicle }: { bays: number[]; vehicle: (i: nu
   const motion = useMotion();
   const refs = useRef<(Group | null)[]>([]);
   useFrame(() => {
-    const moving = motion.intensity < 0.3 ? 0 : Math.max(1, Math.round(motion.intensity * bays.length));
+    const moving = movingVehicles(motion.intensity, bays.length);
     refs.current.forEach((g, i) => {
       if (!g) return;
       if (moving === 0) {

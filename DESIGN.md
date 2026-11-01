@@ -332,6 +332,14 @@ Each step ends with tests and a build.
 - The demo bar adds a "Sites:" line computed from the snapshots, so the captions no longer describe construction by hand.
 - `scale` (tower height and props) is still the placeholder in `companies.ts`; deriving it from size comes with the art in step 5.
 
+### Step 4 notes (built)
+
+- **Flags, beacon tints and the volatility flicker are gone**, for companies, districts and the Exchange. Direction is a **light pool** on the plot (`world/effects/LightPool.tsx`): a soft sunlit patch when up, a cloud shadow when down, nothing when flat. A district's park and the Exchange plaza get the same pool from breadth; district lamps and the Exchange dome shine brighter as breadth rises (`glowFor`).
+- **Frantic is movement style**: `pace(jitter)` speeds up everything that moves on a plot (up to 1.9× when wild). The flare and kiln flicker that used volatility is removed.
+- **Lit windows already followed Activity** (and stay dark in a closed building), so nothing moved; the composition rules (`movingVehicles`, `crewMax`, `openBayCount`) now live in `engine/visual.ts` with tests.
+- **New high** now raises a pillar of gold light as well as the golden crown. The other event effects are unchanged; the per-sector hard-move effects (§6) belong to step 5.
+- **Phone HUD:** the site-news line from step 3 made the player bar swallow the map at 320px. On phones the caption now takes the full width under the day pill and picker, capped at four lines, and the news shows two items plus a count. Checked at 375px and 320px.
+
 ## 12. Items to tune by eye, and open questions
 
 Starting numbers to tune: all band thresholds, weights (0.7/0.3 ceiling; 0.35/0.25/0.40 health; 0.7/0.3 activity), the 60-day and 5-year windows, build durations, hysteresis margins, the level at which footprint steps.
