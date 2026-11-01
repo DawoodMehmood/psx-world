@@ -3,7 +3,7 @@
 Read `README.md` and `SPEC.md` first.
 
 - Commands: `npm run dev`, `npm test`, `npm run build`.
-- No responsive or mobile-specific layout work. Phones use the same view as desktop.
+- The map needs no mobile layout work: phones use the same view, with drag and pinch-zoom. The HUD (title, hint, legend, cards, player bar) must fit and not overlap on phones; its phone rules are the `@media (max-width: 640px)` block at the end of `src/styles.css`, and cards above the player bar use `--demo-h`. Check HUD changes at 375px and 320px wide.
 - Deployed to GitHub Pages from `main` and `claude/**` branches via `.github/workflows/deploy.yml`. Site: https://dawoodmehmood.github.io/psx-world/
 - `vite.config.ts` sets `base: '/psx-world/'` for Pages; keep it, and use relative or base-aware asset paths.
 - The live site shows whichever branch deployed last.

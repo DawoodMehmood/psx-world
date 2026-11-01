@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { TICKS_PER_DAY } from '../engine/types';
 import { clockTime, SPEEDS, TICK_MS, useClock, useSimStore } from '../store/useSimStore';
 import { SCENARIOS } from '../sim/scenarios';
@@ -37,9 +37,20 @@ export function DemoBar() {
   const { setPlaying, stepTick, stepDay, setSpeed, setIndex, reset, loadScenario } = useSimStore();
   const clock = useClock();
   const days = snapshots.length / TICKS_PER_DAY;
+  const bar = useRef<HTMLDivElement>(null);
+  // Cards that sit above the bar (company and district cards) read its height from --demo-h, because it grows when its controls wrap.
+  useEffect(() => {
+    const el = bar.current;
+    if (!el) return;
+    const publish = () => document.documentElement.style.setProperty('--demo-h', `${el.offsetHeight}px`);
+    publish();
+    const watcher = new ResizeObserver(publish);
+    watcher.observe(el);
+    return () => watcher.disconnect();
+  }, []);
 
   return (
-    <div className="panel demo">
+    <div className="panel demo" ref={bar}>
       <div className="caption">
         <span className="day">Day {clock.day}</span>
         <span className="note">{scenario.notes[clock.day] ?? ''}</span>
