@@ -376,6 +376,15 @@ Each step ends with tests and a build.
 - **Expansion rope** (`world/fence.ts`): posts stand at every corner and evenly along each side, so no rope end hangs in the air.
 - **Material flow** (`world/flow.ts`): rocks on the belt and buckets on the elevator stay evenly spaced however many are out, so they read as a stream, not batches of three.
 
+### Step 5, banks, oil and tech (built, for review by eye)
+
+- **Footprints and checks first** (`buildings/siteFootprints.ts`, `tests/siteFootprints.test.ts`): every part of the bank, oil and tech sites has a ground rectangle, and tests check no two overlap and nothing leaves the pad. They found overlaps that were already there and I moved the parts: two bank trees sat inside office wings, oil pumpjack 2's pad touched the processing-unit pad, and tech's dish farm pad overlapped a data center's (plus the café and one tree).
+- **Event poles** (`effects/posts.ts`): each site now picks its pole spots from its own footprints: the true corner when free, otherwise the nearest free spot on the pad's edge. Only the front-left and back-right corners are free on banks and oil; tech's front-left is blocked at tiers 2 and 3. A test checks all four sectors at every depth.
+- **Banks:** level 3 = HQ +2 floors and a plaza fountain; level 6 = second tower +2 floors and planters along the plaza; level 10 = glass sky bridge HQ to second tower and a gold crown on the HQ. Hard moves: gold confetti up; sirens and a rain cloud over the plaza down.
+- **Oil:** the derrick shows size with bands (like cement). Level 3 = taller derrick; level 6 = taller flare with a bigger burner and flame; level 10 = the control hut becomes a two-storey control centre with a radio mast, plus floodlights round the yard. Hard moves: a gusher up; sirens and a tall black smoke column down.
+- **Tech:** level 3 = HQ +2 floors and a taller mast; level 6 = relay nodes on the network line and turning cooling fans on every data center roof; level 10 = glass bridge HQ to office block and a lit crown ring on the HQ roof. Hard moves: a drone light show up; sirens, a rain cloud and part of the windows going dark (`motion.blackout`) down. The network line's pulses are now evenly spaced like cement's belt.
+- Not yet checked by eye: how the sky bridges, planters and bridge/crown details read at the normal zoom; the demo scenarios never take oil or tech to level 10, so I forced that state to look at it.
+
 ## 12. Items to tune by eye, and open questions
 
 Starting numbers to tune: all band thresholds, weights (0.7/0.3 ceiling; 0.35/0.25/0.40 health; 0.7/0.3 activity), the 60-day and 5-year windows, build durations, hysteresis margins, the level at which footprint steps.

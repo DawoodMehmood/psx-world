@@ -51,6 +51,9 @@ export const SLOTS_UNLOCKED = [1, 3, 6];
 
 export const isBuilt = (slots: SlotState[], i: number) => slots[i]?.stage === 'COMPLETE';
 
+/** Whether upgrade `i` (0 = level 3, 1 = level 6, 2 = level 10) is finished. */
+export const upgradeDone = (p: Pick<ArchetypeProps, 'upgrades'>, i: number) => p.upgrades[i]?.stage === 'COMPLETE';
+
 /** The tier's expansion slots: reserved pads, building sites or finished buildings. */
 export function Slots({ designs, props }: { designs: SlotDesign[]; props: ArchetypeProps }) {
   return (
@@ -314,7 +317,8 @@ export function ActivityWindows({
   }, [windows]);
   const shown = useRef(-1);
   useFrame(() => {
-    const share = closed ? 0 : 0.1 + motion.intensity * 0.85;
+    // a blackout (a big move down on a tech campus) knocks out part of the lighting
+    const share = closed ? 0 : (0.1 + motion.intensity * 0.85) * (1 - 0.6 * motion.blackout);
     let k = 0;
     while (k < windows.length && windows[k].threshold < share) k++;
     if (k === shown.current) return;

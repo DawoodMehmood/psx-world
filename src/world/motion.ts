@@ -21,11 +21,13 @@ export interface PlotMotion {
   pool: number;
   /** 0–1: extra kiln glow while a big move up is celebrated (cement). */
   heat: number;
+  /** 0–1: how much of a plot's window lighting is knocked out while a big move down lasts (tech). */
+  blackout: number;
   halted: boolean;
 }
 
 export function createMotion(): PlotMotion {
-  return { t: 0, intensity: 0.42, speed: 1, jitter: 0, pool: 0, heat: 0, halted: false };
+  return { t: 0, intensity: 0.42, speed: 1, jitter: 0, pool: 0, heat: 0, blackout: 0, halted: false };
 }
 
 const fallback = createMotion();

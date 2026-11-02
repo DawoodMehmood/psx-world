@@ -7,7 +7,10 @@ import { Tanker, Workers, type Lane } from '../agents';
 import { Box, Cone, Cyl, Roof, type Vec3 } from '../kit';
 import { Static } from '../Static';
 import { useMotion } from '../motion';
-import { BAY_Z, BayLines, BayVehicles, BUILD_W, ClosedBay,  DOCK_X, isBuilt, openBays, runningCount, Slots, TIER_BAYS, Weeds, type SlotDesign } from './shared';
+import { BAY_Z, BayLines, BayVehicles, BUILD_W, ClosedBay, DOCK_X, isBuilt, openBays, runningCount, Slots, TIER_BAYS, upgradeDone, Weeds, type SlotDesign } from './shared';
+import { UpgradeSite } from '../construction/UpgradeSite';
+import { OIL } from './siteFootprints';
+import { derrickBands, derrickHeight, flareHeight } from './sitePlan';
 import { crewMax } from '../../engine/visual';
 import type { ArchetypeProps } from './types';
 
@@ -27,11 +30,16 @@ import type { ArchetypeProps } from './types';
  * rusts the tanks and lets dry scrub into the yard.
  */
 
+/** The upgrades, in ladder order (levels 3, 6 and 10), as they show on an oil site. */
+const TALL_DERRICK = 0;
+const BIG_FLARE = 1;
+const CONTROL_CENTRE = 2;
+
 /** Pumpjacks in build order: the first is there from the start, then slots 0, 1 and 3. */
 const PUMPJACKS: [number, number][] = [
   [3.4, 5.0],
   [7.0, 5.0],
-  [4.0, 9.2],
+  [4.6, 9.2],
   [5.0, 12.8],
 ];
 const PUMPJACK_SLOT = [-1, 0, 1, 3];
@@ -125,7 +133,9 @@ function builtPumpjacks(slots: SlotState[]): number {
 export function OilField(props: ArchetypeProps) {
   const { scale, accent, seed, health, tier } = props;
   const h = HEALTH.indexOf(health);
-  const derrickH = 5 + scale * 2.5;
+  const derrickH = derrickHeight(scale, upgradeDone(props, TALL_DERRICK));
+  const bandCount = derrickBands(scale);
+  const centre = upgradeDone(props, CONTROL_CENTRE);
   const bays = BAY_Z.slice(0, TIER_BAYS[tier - 1]);
   const open = openBays(h, bays);
   const [dx, dz] = DERRICK;
@@ -137,7 +147,8 @@ export function OilField(props: ArchetypeProps) {
         <cylinderGeometry args={[0.35, 1.4, derrickH, 4, 1]} />
         <meshStandardMaterial color="#d8463b" roughness={0.85} flatShading />
       </mesh>
-      {[0.25, 0.5, 0.75].map((f) => {
+      {/* one white band for each step of company size, so a big company's rig reads as bigger */}
+      {Array.from({ length: bandCount }, (_, i) => (i + 1) / (bandCount + 1)).map((f) => {
         const r = 1.4 - (1.4 - 0.35) * f + 0.05;
         return (
           <mesh key={f} position={[dx, 0.5 + derrickH * f, dz]} rotation={[0, Math.PI / 4, 0]} castShadow>
@@ -150,11 +161,25 @@ export function OilField(props: ArchetypeProps) {
 
       {/* control hut and flare stack along the back edge */}
       <Static>
-        <Box size={[1.8, 1.3, 1.2]} at={[5.6, 0, 1.2]} color="#ece3cf" rounded={0.08} />
-        <Roof w={2.0} d={1.4} h={0.5} at={[5.6, 1.3, 1.2]} color={accent} />
-        <Box size={[1.0, 0.4, 0.06]} at={[5.6, 0.6, 1.82]} color={h <= 0 ? '#5a554e' : '#8fb4cf'} shadow={false} />
+        {/* the last upgrade turns the control hut into a two-storey control centre with a radio mast */}
+        <Box size={centre ? [2.4, 1.3, 1.6] : [1.8, 1.3, 1.2]} at={[5.6, 0, 1.2]} color="#ece3cf" rounded={0.08} />
+        {centre && <Box size={[2.1, 1.0, 1.4]} at={[5.6, 1.3, 1.2]} color="#f4ecdc" rounded={0.08} />}
+        <Roof w={centre ? 2.5 : 2.0} d={centre ? 1.8 : 1.4} h={0.5} at={[5.6, centre ? 2.3 : 1.3, 1.2]} color={accent} />
+        <Box size={[centre ? 1.6 : 1.0, 0.4, 0.06]} at={[5.6, 0.6, centre ? 2.02 : 1.82]} color={h <= 0 ? '#5a554e' : '#8fb4cf'} shadow={false} />
+        {centre && (
+          <>
+            <Box size={[1.4, 0.4, 0.06]} at={[5.6, 1.7, 1.92]} color={h <= 0 ? '#5a554e' : '#8fb4cf'} shadow={false} />
+            <Cyl r={0.04} h={1.6} at={[5.0, 2.8, 1.0]} color="#cfd8dc" low />
+            <Cyl r={0.04} h={1.0} at={[6.2, 2.8, 1.0]} color="#cfd8dc" low />
+          </>
+        )}
       </Static>
-      <Flare at={[8.4, 1.0]} lit={h >= 1} />
+      <Flare at={[OIL.flare.at[0], OIL.flare.at[1]]} lit={h >= 1} big={upgradeDone(props, BIG_FLARE)} />
+      {/* level 10: floodlights round the yard */}
+      {centre && OIL.floodlights.filter(([, z]) => z < SITE_TIERS.oil[tier - 1].depth - 0.6).map(([x, z]) => <Floodlight key={`${x}${z}`} at={[x, z]} />)}
+      <UpgradeSite state={props.upgrades[TALL_DERRICK]} at={[OIL.derrick.at[0], OIL.derrick.at[1]]} w={2.9} d={2.9} h={derrickHeight(scale, false) - 0.4} />
+      <UpgradeSite state={props.upgrades[BIG_FLARE]} at={[OIL.flare.at[0], OIL.flare.at[1]]} w={1.3} d={1.3} h={flareHeight(false) - 0.3} />
+      <UpgradeSite state={props.upgrades[CONTROL_CENTRE]} at={[OIL.hut.at[0], OIL.hut.at[1]]} w={2.6} d={1.8} h={1.5} />
 
       {/* the first tank, beside the tanker bays */}
       <Tank at={[9.7, 3.6]} accent={accent} rusty={h <= 0} />
@@ -344,7 +369,7 @@ function Steam({ at }: { at: Vec3 }) {
 }
 
 /** Flare stack: the flame grows with Activity; out when struggling. */
-function Flare({ at, lit }: { at: [number, number]; lit: boolean }) {
+function Flare({ at, lit, big = false }: { at: [number, number]; lit: boolean; big?: boolean }) {
   const motion = useMotion();
   const flame = useRef<Group>(null);
   const glow = useMemo(() => new MeshStandardMaterial({ color: '#ffb340', emissive: '#ff7a1a', emissiveIntensity: 1.2, flatShading: true }), []);
@@ -352,21 +377,25 @@ function Flare({ at, lit }: { at: [number, number]; lit: boolean }) {
     if (!flame.current) return;
     const flicker = 1 + Math.sin(clock.elapsedTime * 9) * 0.08;
     const size = motion.halted ? 0.2 : (0.35 + motion.intensity * 0.9) * flicker;
-    flame.current.scale.set(size, size * 1.6, size);
+    const grow = big ? 1.45 : 1;
+    flame.current.scale.set(size * grow, size * 1.6 * grow, size * grow);
   });
   const [x, z] = at;
+  const top = flareHeight(big);
   return (
     <group position={[x, 0, z]}>
       <Static>
         <Box size={[0.8, 0.3, 0.8]} color="#7b7368" />
-        <Cyl r={0.16} h={4.4} at={[0, 0.3, 0]} color="#d8d0c0" />
-        {[1.4, 2.8].map((y) => (
-          <Cyl key={y} r={0.2} h={0.2} at={[0, y, 0]} color="#d8463b" shadow={false} />
+        <Cyl r={0.16} h={top} at={[0, 0.3, 0]} color="#d8d0c0" />
+        {[0.32, 0.64].map((f) => (
+          <Cyl key={f} r={0.2} h={0.2} at={[0, 0.3 + top * f, 0]} color="#d8463b" shadow={false} />
         ))}
-        <Cyl r={0.24} h={0.2} at={[0, 4.6, 0]} color="#5f584f" />
+        {/* the level-6 upgrade also gives it a bigger burner head */}
+        <Cyl r={big ? 0.4 : 0.24} h={big ? 0.32 : 0.2} at={[0, 0.3 + top, 0]} color="#5f584f" />
+        {big && <Cone r={0.4} h={0.3} at={[0, 0.3 + top + 0.32, 0]} color="#7b7368" />}
       </Static>
       {lit && (
-        <group ref={flame} position={[0, 4.8, 0]}>
+        <group ref={flame} position={[0, top + 0.4 + (big ? 0.3 : 0), 0]}>
           <mesh material={glow} position={[0, 0.4, 0]}>
             <coneGeometry args={[0.35, 0.8, 6]} />
           </mesh>
@@ -389,6 +418,20 @@ function Barrels({ at }: { at: [number, number] }) {
         {spots.map(([x, z, c]) => (
           <Cyl key={`${x}${z}`} r={0.2} h={0.5} at={[x, 0, z]} color={c} low />
         ))}
+      </Static>
+    </group>
+  );
+}
+
+/** A floodlight pole with a lamp head and a pool of light round its foot (level 10). */
+function Floodlight({ at }: { at: [number, number] }) {
+  return (
+    <group position={[at[0], 0, at[1]]}>
+      <Static>
+        <Cyl r={0.12} h={0.2} color="#5f584f" />
+        <Cyl r={0.05} h={3.0} at={[0, 0.2, 0]} color="#8a8174" low />
+        <Box size={[0.6, 0.18, 0.3]} at={[0, 3.2, 0]} color="#3f3a35" />
+        <Box size={[0.5, 0.06, 0.24]} at={[0, 3.2, 0.14]} color="#fff3b0" glow={1.2} shadow={false} />
       </Static>
     </group>
   );

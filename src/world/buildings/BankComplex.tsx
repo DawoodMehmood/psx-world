@@ -3,7 +3,9 @@ import { HEALTH } from '../../engine/types';
 import { CashVan, Workers, type Lane } from '../agents';
 import { Box, Car, Cyl, GEO, mat, Roof, Tree } from '../kit';
 import { Static } from '../Static';
-import { ActivityWindows, BAY_Z, BayLines, BayVehicles, ClosedBay,  closedByDecline, openBays, Slots, TIER_BAYS, ToLet, Weeds, type SlotDesign } from './shared';
+import { ActivityWindows, BAY_Z, BayLines, BayVehicles, ClosedBay, closedByDecline, openBays, Slots, TIER_BAYS, ToLet, upgradeDone, Weeds, type SlotDesign } from './shared';
+import { UpgradeSite } from '../construction/UpgradeSite';
+import { BANK } from './siteFootprints';
 import { crewMax } from '../../engine/visual';
 import type { ArchetypeProps } from './types';
 
@@ -23,6 +25,11 @@ import type { ArchetypeProps } from './types';
  * goes up. The HQ never closes.
  */
 
+/** The upgrades, in ladder order (levels 3, 6 and 10), as they show on a bank site. */
+const TALLER_HQ = 0;
+const GROWN_PLAZA = 1;
+const SKY_BRIDGE = 2;
+
 const CARS = ['#f0c94a', '#e9e9ef', '#3a3f4a', '#f0c94a', '#c94a4a', '#e9e9ef'];
 /** The skyline along the back edge: x center and width of each tower, all the same depth. */
 const TOWER_Z = 1.9;
@@ -30,6 +37,9 @@ const TOWER_D = 3.0;
 const HQ_X = 2.3;
 const TOWER2_X = 6.1;
 const TOWER3_X = 9.4;
+/** The sky bridge spans the gap between the HQ's right face and the second tower's left face. */
+const TOWER_X_BRIDGE_FROM = HQ_X + 1.8;
+const TOWER_X_BRIDGE_TO = TOWER2_X - 1.3;
 
 const LANES: Lane[][] = [
   [
@@ -62,7 +72,7 @@ const SLOTS: SlotDesign[] = [
     d: TOWER_D + 0.2,
     h: 5,
     crane: [4.4, 4.6],
-    built: (p) => <Tower at={[TOWER2_X, TOWER_Z]} w={2.6} d={TOWER_D} floors={Math.round(4 + p.scale * 4)} color="#e3ebf2" {...p} seed={p.seed + 11} closed={closedFrom(p, 2)} />,
+    built: (p) => <Tower at={[TOWER2_X, TOWER_Z]} w={2.6} d={TOWER_D} floors={Math.round(4 + p.scale * 4) + (upgradeDone(p, GROWN_PLAZA) ? 2 : 0)} color="#e3ebf2" {...p} seed={p.seed + 11} closed={closedFrom(p, 2)} />,
     partial: () => <TowerCore at={[TOWER2_X, TOWER_Z]} w={2.6} d={TOWER_D} h={3} />,
   },
   {
@@ -114,7 +124,7 @@ function closedFrom(p: ArchetypeProps, order: number): boolean {
 export function BankComplex(props: ArchetypeProps) {
   const { scale, accent, seed, health, tier } = props;
   const h = HEALTH.indexOf(health);
-  const floors = Math.round(5 + scale * 6);
+  const floors = Math.round(5 + scale * 6) + (upgradeDone(props, TALLER_HQ) ? 2 : 0);
   const bays = BAY_Z.slice(0, TIER_BAYS[tier - 1]);
   const open = openBays(h, bays);
   return (
@@ -131,7 +141,19 @@ export function BankComplex(props: ArchetypeProps) {
         <Box size={[1.8, 0.2, 0.7]} at={[HQ_X, 1.4, TOWER_Z + TOWER_D / 2 + 0.35]} color={accent} />
         <Box size={[1.2, 1.3, 0.1]} at={[HQ_X, 0.6, TOWER_Z + TOWER_D / 2 + 0.03]} color="#6f8aa3" />
       </Static>
-      <Tower at={[HQ_X, TOWER_Z]} w={3.6} d={TOWER_D} floors={floors} color="#f3f0e8" {...props} base={0.6} closed={false} />
+      <Tower at={[HQ_X, TOWER_Z]} w={3.6} d={TOWER_D} floors={floors} color="#f3f0e8" {...props} base={0.6} closed={false} crown={upgradeDone(props, SKY_BRIDGE)} />
+
+      {/* level 3: a small fountain on the plaza; level 6: planters along its front; level 10: a glass bridge joining the HQ to the second tower */}
+      {upgradeDone(props, TALLER_HQ) && (
+        <group scale={BANK.plazaFountain.r}>
+          <Fountain at={[BANK.plazaFountain.at[0] / BANK.plazaFountain.r, BANK.plazaFountain.at[1] / BANK.plazaFountain.r]} dry={h <= 0} />
+        </group>
+      )}
+      {upgradeDone(props, GROWN_PLAZA) && BANK.planters.map((p, i) => <Planter key={i} at={[p.at[0], p.at[1]]} w={p.w} d={p.d} />)}
+      {upgradeDone(props, SKY_BRIDGE) && tier >= 2 && <SkyBridge height={Math.min(5.2, (0.6 + Math.round(4 + scale * 4) + (upgradeDone(props, GROWN_PLAZA) ? 2 : 0)) * 0.62)} />}
+      <UpgradeSite state={props.upgrades[TALLER_HQ]} at={[HQ_X, TOWER_Z]} w={4.1} d={3.6} h={Math.max(3, floors - 1)} />
+      <UpgradeSite state={props.upgrades[GROWN_PLAZA]} at={[5.8, 5.2]} w={11} d={1.4} h={0.9} />
+      <UpgradeSite state={props.upgrades[SKY_BRIDGE]} at={[(TOWER_X_BRIDGE_FROM + TOWER_X_BRIDGE_TO) / 2, TOWER_Z]} w={1.4} d={3.4} h={5} />
 
       {bays.map((z) => (
         <group key={z}>
@@ -144,14 +166,14 @@ export function BankComplex(props: ArchetypeProps) {
       {tier >= 2 && (
         <>
           <Fountain at={[2.2, 8.0]} dry={h <= 0} />
-          <Tree at={[3.9, 0, 9.3]} size={0.8} />
+          <Tree at={[3.4, 0, 9.4]} size={0.8} />
           <Tree at={[9.9, 0, 9.5]} size={0.7} />
         </>
       )}
       {tier >= 3 && (
         <>
           <Tree at={[9.8, 0, 13.3]} size={0.8} />
-          <Tree at={[4.2, 0, 10.9]} size={0.7} />
+          <Tree at={[3.8, 0, 10.2]} size={0.7} />
         </>
       )}
 
@@ -164,7 +186,7 @@ export function BankComplex(props: ArchetypeProps) {
 }
 
 /** A tower: walls, activity-lit windows, an accent crown and a roof box. */
-function Tower({ at, w, d, floors, color, accent, seed, closed, base = 0 }: ArchetypeProps & { at: [number, number]; w: number; d: number; floors: number; color: string; closed: boolean; base?: number }) {
+function Tower({ at, w, d, floors, color, accent, seed, closed, base = 0, crown = false }: ArchetypeProps & { at: [number, number]; w: number; d: number; floors: number; color: string; closed: boolean; base?: number; crown?: boolean }) {
   const [x, z] = at;
   const towerH = 0.6 + floors;
   return (
@@ -173,6 +195,14 @@ function Tower({ at, w, d, floors, color, accent, seed, closed, base = 0 }: Arch
         <Box size={[w, towerH, d]} at={[x, base, z]} color={color} rounded={0.15} />
         <Box size={[w + 0.3, 0.45, d + 0.3]} at={[x, base + towerH, z]} color={closed ? '#a7a196' : accent} rounded={0.1} />
         <Box size={[w * 0.55, 0.6, d * 0.55]} at={[x, base + towerH + 0.45, z]} color="#e8e3d6" rounded={0.1} />
+        {/* the last upgrade crowns the tallest tower in gold */}
+        {crown && (
+          <>
+            <Box size={[w + 0.5, 0.22, d + 0.5]} at={[x, base + towerH + 0.45, z]} color="#f2c14e" glow={0.35} rounded={0.06} />
+            {[-1, 1].flatMap((sx) => [-1, 1].map((sz) => <Box key={`${sx}${sz}`} size={[0.24, 0.5, 0.24]} at={[x + sx * (w / 2 + 0.1), base + towerH + 0.67, z + sz * (d / 2 + 0.1)]} color="#f2c14e" glow={0.35} />))}
+            <Cyl r={0.07} h={1.3} at={[x, base + towerH + 1.05, z]} color="#f2c14e" glow={0.5} low />
+          </>
+        )}
       </Static>
       <ActivityWindows at={[x, base, z]} w={w} d={d} floors={floors - 1} cols={3} seed={seed} closed={closed} darkColor="#7b93ad" />
       {closed && (
@@ -281,5 +311,32 @@ function Fountain({ at, dry }: { at: [number, number]; dry: boolean }) {
         {!dry && <Cyl r={0.06} h={0.5} at={[0, 1.0, 0]} color="#c8ecff" glow={0.2} low shadow={false} />}
       </Static>
     </group>
+  );
+}
+
+/** A stone planter with a shrub, along the front of the plaza (level 6). */
+function Planter({ at, w, d }: { at: [number, number]; w: number; d: number }) {
+  return (
+    <group position={[at[0], 0, at[1]]}>
+      <Static>
+        <Box size={[w, 0.3, d]} color="#d9d2c0" rounded={0.05} />
+        {[-0.25, 0.25].map((x) => (
+          <mesh key={x} geometry={GEO.blob} material={mat('#5fae4a')} position={[x * (w / 0.9), 0.5, 0]} scale={[0.26, 0.24, 0.26]} castShadow />
+        ))}
+      </Static>
+    </group>
+  );
+}
+
+/** A glass bridge joining the HQ to the second tower, high up on the skyline's back edge (level 10). */
+function SkyBridge({ height }: { height: number }) {
+  const x0 = TOWER_X_BRIDGE_FROM;
+  const x1 = TOWER_X_BRIDGE_TO;
+  return (
+    <Static>
+      <Box size={[x1 - x0 + 0.3, 0.7, 1.6]} at={[(x0 + x1) / 2, height, TOWER_Z]} color="#9fc7e2" rounded={0.06} />
+      <Box size={[x1 - x0 + 0.34, 0.1, 1.7]} at={[(x0 + x1) / 2, height + 0.7, TOWER_Z]} color="#e8e3d6" />
+      <Box size={[x1 - x0 + 0.34, 0.1, 1.7]} at={[(x0 + x1) / 2, height - 0.1, TOWER_Z]} color="#e8e3d6" />
+    </Static>
   );
 }

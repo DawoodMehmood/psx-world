@@ -7,7 +7,9 @@ import { Van, Workers, type Lane } from '../agents';
 import { Box, Cone, Cyl, GEO, mat, Rope, Tree, type Vec3 } from '../kit';
 import { Static } from '../Static';
 import { agentCount, useMotion } from '../motion';
-import { ActivityWindows, BAY_Z, BayLines, BayVehicles, BUILD_W, ClosedBay,  closedByDecline, isBuilt, openBays, Slots, TIER_BAYS, ToLet, Weeds, type SlotDesign } from './shared';
+import { ActivityWindows, BAY_Z, BayLines, BayVehicles, BUILD_W, ClosedBay, closedByDecline, isBuilt, openBays, Slots, TIER_BAYS, ToLet, upgradeDone, Weeds, type SlotDesign } from './shared';
+import { UpgradeSite } from '../construction/UpgradeSite';
+import { flowPhase } from '../flow';
 import { crewMax } from '../../engine/visual';
 import type { ArchetypeProps } from './types';
 
@@ -26,6 +28,11 @@ import type { ArchetypeProps } from './types';
  * buildings first: servers go dark and a TO LET board goes up. The HQ never closes.
  */
 
+/** The upgrades, in ladder order (levels 3, 6 and 10), as they show on a tech campus. */
+const TALL_HQ = 0;
+const RELAYS = 1;
+const SKY_BRIDGE = 2;
+
 const LAWN = '#9ed98a';
 const HQ: [number, number] = [2.2, 2.2];
 const MAST: [number, number] = [9.4, 1.0];
@@ -34,7 +41,7 @@ const DC2: [number, number] = [6.6, 8.4];
 const DC3: [number, number] = [6.6, 12.4];
 const OFFICE: [number, number] = [1.6, 7.8];
 const DOME: [number, number] = [2.1, 12.0];
-const DISHES: [number, number] = [9.9, 12.8];
+const DISHES: [number, number] = [10.2, 12.8];
 
 const LANES: Lane[][] = [
   [
@@ -129,7 +136,7 @@ export function TechCampus(props: ArchetypeProps) {
   const { scale, accent, seed, health, tier, slots } = props;
   const h = HEALTH.indexOf(health);
   const depth = SITE_TIERS.tech[tier - 1].depth;
-  const floors = Math.round(4 + scale * 6);
+  const floors = Math.round(4 + scale * 6) + (upgradeDone(props, TALL_HQ) ? 2 : 0);
   const towerH = floors * 0.9 + 0.4;
   const bays = BAY_Z.slice(0, TIER_BAYS[tier - 1]);
   const open = openBays(h, bays);
@@ -148,12 +155,26 @@ export function TechCampus(props: ArchetypeProps) {
         <Cyl r={1.95} h={0.3} at={[hx, towerH, hz]} color={accent} />
         <Cyl r={1.1} h={0.5} at={[hx, towerH + 0.3, hz]} color="#e9f4f8" />
         <Cyl r={0.05} h={1.2} at={[hx, towerH + 0.8, hz]} color="#cfd8dc" low />
+        {upgradeDone(props, SKY_BRIDGE) && (
+          <>
+            <Cyl r={2.1} h={0.12} at={[hx, towerH + 0.3, hz]} color="#fff3b0" glow={0.8} shadow={false} />
+            {Array.from({ length: 8 }, (_, i) => {
+              const a = (i / 8) * Math.PI * 2;
+              return <Box key={i} size={[0.2, 0.4, 0.2]} at={[hx + Math.cos(a) * 2.1, towerH + 0.42, hz + Math.sin(a) * 2.1]} color="#fff3b0" glow={0.8} shadow={false} />;
+            })}
+          </>
+        )}
       </Static>
       <ActivityWindows at={[hx, 0, hz]} w={3.4} d={3.4} floors={floors - 1} floorHeight={0.9} baseHeight={0.5} cols={4} seed={seed} litColor="#fff3b0" darkColor="#5f9fc6" />
 
-      <Antenna at={MAST} />
+      <Antenna at={MAST} height={MAST_H + (upgradeDone(props, TALL_HQ) ? 1.4 : 0)} />
       {/* the line runs to the front data center, so it goes in once that is built */}
-      {serversBuilt && <NetworkLine on={serversUp} accent={accent} />}
+      {serversBuilt && <NetworkLine on={serversUp} accent={accent} nodes={upgradeDone(props, RELAYS)} />}
+      {/* level 10: a glass bridge from the HQ to the office block, and a lit crown on the HQ roof */}
+      {upgradeDone(props, SKY_BRIDGE) && isBuilt(slots, 1) && <SkyBridge height={Math.min(3.4, towerH * 0.45)} />}
+      <UpgradeSite state={props.upgrades[TALL_HQ]} at={[hx, hz]} w={3.8} d={3.8} h={Math.max(3, towerH - 1)} />
+      <UpgradeSite state={props.upgrades[RELAYS]} at={[8.4, 3.2]} w={3.0} d={2.2} h={1.6} />
+      <UpgradeSite state={props.upgrades[SKY_BRIDGE]} at={[hx, (hz + 1.7 + OFFICE[1] - 1.7) / 2]} w={1.4} d={2.4} h={3} />
       <Drones center={HQ} y={towerH + 1.6} />
 
       {bays.map((z) => (
@@ -166,8 +187,8 @@ export function TechCampus(props: ArchetypeProps) {
 
       {tier >= 2 && (
         <>
-          <Cafe at={[9.8, 6.8]} accent={accent} closed={h <= 0} />
-          <Tree at={[4.0, 0, 9.8]} size={0.75} color="#3fa66b" />
+          <Cafe at={[10.0, 6.8]} accent={accent} closed={h <= 0} />
+          <Tree at={[3.6, 0, 9.9]} size={0.75} color="#3fa66b" />
         </>
       )}
       {tier >= 3 && (
@@ -186,7 +207,7 @@ export function TechCampus(props: ArchetypeProps) {
 }
 
 /** Low data center, server lights blinking on its front face; dark when closed. */
-function DataCenter({ at, accent, seed, closed }: ArchetypeProps & { at: [number, number]; closed: boolean }) {
+function DataCenter({ at, accent, seed, closed, upgrades }: ArchetypeProps & { at: [number, number]; closed: boolean }) {
   const motion = useMotion();
   const lights = useRef<Group>(null);
   useFrame(() => {
@@ -219,6 +240,7 @@ function DataCenter({ at, accent, seed, closed }: ArchetypeProps & { at: [number
           />
         ))}
       </group>
+      {upgrades[RELAYS]?.stage === 'COMPLETE' && <CoolingFans closed={closed} />}
       {closed && <ToLet at={[0.9, 0.35, 0.92]} w={1.6} />}
     </group>
   );
@@ -295,10 +317,10 @@ const MAST_TOP = 0.16;
  * platform with panel antennas, a microwave dish on a bracket off the front
  * face, and a blinking red light on top. An equipment cabinet stands at its foot.
  */
-export function Antenna({ at }: { at: [number, number] }) {
+export function Antenna({ at, height = MAST_H }: { at: [number, number]; height?: number }) {
   const sections = useMemo(() => {
     const out: { from: Vec3; to: Vec3; r: number; color: string }[] = [];
-    const half = (y: number) => MAST_BASE + (MAST_TOP - MAST_BASE) * (y / MAST_H);
+    const half = (y: number) => MAST_BASE + (MAST_TOP - MAST_BASE) * (y / height);
     const corners: [number, number][] = [
       [1, 1],
       [-1, 1],
@@ -306,8 +328,8 @@ export function Antenna({ at }: { at: [number, number] }) {
       [1, -1],
     ];
     for (let i = 0; i < MAST_SECTIONS; i++) {
-      const y0 = (i * MAST_H) / MAST_SECTIONS;
-      const y1 = ((i + 1) * MAST_H) / MAST_SECTIONS;
+      const y0 = (i * height) / MAST_SECTIONS;
+      const y1 = ((i + 1) * height) / MAST_SECTIONS;
       const a0 = half(y0);
       const a1 = half(y1);
       const color = i % 2 === 0 ? '#e2463e' : '#f4f1ea';
@@ -320,14 +342,14 @@ export function Antenna({ at }: { at: [number, number] }) {
       });
     }
     return out;
-  }, []);
+  }, [height]);
   const beacon = useRef<Mesh>(null);
   useFrame(({ clock }) => {
     if (beacon.current) beacon.current.visible = clock.elapsedTime % 1.6 < 0.8;
   });
-  const deck = MAST_H - 0.9;
+  const deck = height - 0.9;
   const dishY = deck - 0.8;
-  const faceZ = MAST_BASE + (MAST_TOP - MAST_BASE) * (dishY / MAST_H);
+  const faceZ = MAST_BASE + (MAST_TOP - MAST_BASE) * (dishY / height);
   return (
     <group position={[at[0], 0, at[1]]}>
       <Static>
@@ -365,10 +387,10 @@ export function Antenna({ at }: { at: [number, number] }) {
           <Box size={[0.08, 0.08, 0.08]} at={[0, -0.04, faceZ + 0.92]} color="#5f6a70" shadow={false} />
         </group>
         {/* top spike and light */}
-        <Cyl r={0.03} h={0.7} at={[0, MAST_H, 0]} color="#cfd8dc" low />
+        <Cyl r={0.03} h={0.7} at={[0, height, 0]} color="#cfd8dc" low />
       </group>
       </Static>
-      <mesh ref={beacon} geometry={GEO.ball} material={mat('#ff3b30', 1.6)} position={[0, 0.2 + MAST_H + 0.75, 0]} scale={0.09} />
+      <mesh ref={beacon} geometry={GEO.ball} material={mat('#ff3b30', 1.6)} position={[0, 0.2 + height + 0.75, 0]} scale={0.09} />
     </group>
   );
 }
@@ -378,7 +400,7 @@ export function Antenna({ at }: { at: [number, number] }) {
  * Glowing pulses run along it: more and faster with Activity, none while the
  * data center is closed.
  */
-function NetworkLine({ on, accent }: { on: boolean; accent: string }) {
+function NetworkLine({ on, accent, nodes = false }: { on: boolean; accent: string; nodes?: boolean }) {
   const motion = useMotion();
   const pulses = useRef<(Mesh | null)[]>([]);
   const curve = useMemo(
@@ -398,7 +420,8 @@ function NetworkLine({ on, accent }: { on: boolean; accent: string }) {
       if (!m) return;
       m.visible = i < count;
       if (!m.visible) return;
-      const u = (motion.t * 0.35 + i / 6) % 1;
+      // evenly spaced however many are out, so pulses read as a stream and not as batches
+      const u = flowPhase(i, count, motion.t * 0.35);
       m.position.copy(curve.getPointAt(u));
     });
   });
@@ -411,6 +434,17 @@ function NetworkLine({ on, accent }: { on: boolean; accent: string }) {
         {[1.8, 2.8].map((dz, i) => (
           <Cyl key={dz} r={0.05} h={2.0 - i * 0.1} at={[MAST[0] + 0.2 - i * 0.3, 0, MAST[1] + dz]} color="#8e9a9f" low />
         ))}
+        {/* level 6: relay nodes along the line, each a small glowing box on the cable */}
+        {nodes &&
+          [0.28, 0.52, 0.76].map((f) => {
+            const p = curve.getPointAt(f);
+            return (
+              <group key={f}>
+                <Box size={[0.22, 0.22, 0.22]} at={[p.x, p.y - 0.11, p.z]} color={accent} glow={0.9} shadow={false} />
+                <Cyl r={0.03} h={Math.max(0.2, p.y - 0.22)} at={[p.x, 0, p.z]} color="#8e9a9f" low />
+              </group>
+            );
+          })}
       </Static>
       {Array.from({ length: 6 }, (_, i) => (
         <mesh
@@ -487,5 +521,48 @@ function Cafe({ at, accent, closed }: { at: [number, number]; accent: string; cl
         ))}
       </Static>
     </group>
+  );
+}
+
+/** Cooling units along a data center's roof front, their fans turning with the plot's clock (level 6). */
+function CoolingFans({ closed }: { closed: boolean }) {
+  const motion = useMotion();
+  const fans = useRef<(Mesh | null)[]>([]);
+  useFrame(() => {
+    fans.current.forEach((m, i) => {
+      if (m) m.rotation.y = closed ? 0 : motion.t * (3 + i);
+    });
+  });
+  return (
+    <group>
+      {[-1.4, -0.2, 1.0].map((x, i) => (
+        <group key={x} position={[x, 1.8, 0.45]}>
+          <Box size={[0.6, 0.3, 0.5]} color="#9aa6af" rounded={0.04} />
+          <mesh
+            ref={(el) => {
+              fans.current[i] = el;
+            }}
+            position={[0, 0.2, 0]}
+          >
+            <boxGeometry args={[0.46, 0.03, 0.08]} />
+            <meshStandardMaterial color="#3a3f4a" flatShading />
+          </mesh>
+          <Cyl r={0.2} h={0.02} at={[0, 0.15, 0]} color="#47505a" low shadow={false} />
+        </group>
+      ))}
+    </group>
+  );
+}
+
+/** A glass bridge from the HQ's front face to the office block's back face (level 10). */
+function SkyBridge({ height }: { height: number }) {
+  const z0 = HQ[1] + 1.7;
+  const z1 = OFFICE[1] - 1.7;
+  return (
+    <Static>
+      <Box size={[0.9, 0.55, z1 - z0 + 0.3]} at={[1.7, height, (z0 + z1) / 2]} color="#9fd3ee" rounded={0.05} />
+      <Box size={[1.0, 0.08, z1 - z0 + 0.34]} at={[1.7, height + 0.55, (z0 + z1) / 2]} color="#e9f4f8" />
+      <Box size={[1.0, 0.08, z1 - z0 + 0.34]} at={[1.7, height - 0.08, (z0 + z1) / 2]} color="#e9f4f8" />
+    </Static>
   );
 }

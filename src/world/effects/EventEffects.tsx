@@ -7,10 +7,11 @@ import type { EventType, MarketEvent } from '../../engine/types';
 import { LOT_SIZE } from '../../config/layout';
 import { Ball, Box, Cyl, GEO, mat } from '../kit';
 import { useMotion } from '../motion';
-import { cornerOffset, POST_BASE_R } from './posts';
+import { BANK, OIL, TECH } from '../buildings/siteFootprints';
+import { eventPosts, postOffset, POST_BASE_R } from './posts';
 
 /** Effects are placed in coordinates centered on the site; `size` is the site's side. */
-type EffectProps = { magnitude: number; top: number; accent: string; seed: number; size: number; depth: number };
+type EffectProps = { magnitude: number; top: number; accent: string; seed: number; size: number; depth: number; archetype: Archetype };
 
 const EFFECTS: Partial<Record<EventType, (p: EffectProps) => React.JSX.Element>> = {
   BIG_UP: Fireworks,
@@ -28,6 +29,9 @@ const EFFECTS: Partial<Record<EventType, (p: EffectProps) => React.JSX.Element>>
  */
 const SECTOR_EFFECTS: Partial<Record<Archetype, Partial<Record<EventType, (p: EffectProps) => React.JSX.Element>>>> = {
   cement: { BIG_UP: KilnCheer, BIG_DOWN: DustStorm },
+  bank: { BIG_UP: GoldConfetti, BIG_DOWN: PlazaRain },
+  oil: { BIG_UP: Gusher, BIG_DOWN: SmokeColumn },
+  tech: { BIG_UP: DroneShow, BIG_DOWN: CampusStorm },
 };
 
 /**
@@ -41,7 +45,7 @@ export function EventEffects({ events, top, accent, depth, archetype }: { events
     <>
       {events.map((e) => {
         const Effect = (archetype && SECTOR_EFFECTS[archetype]?.[e.type]) || EFFECTS[e.type];
-        return Effect ? <Effect key={e.id} magnitude={e.magnitude} top={top} accent={accent} seed={e.startIndex} size={size} depth={depth} /> : null;
+        return Effect ? <Effect key={e.id} magnitude={e.magnitude} top={top} accent={accent} seed={e.startIndex} size={size} depth={depth} archetype={archetype ?? 'cement'} /> : null;
       })}
     </>
   );
@@ -61,7 +65,7 @@ const glowMaterial = () => new MeshBasicMaterial({ toneMapped: false });
 const CONFETTI = ['#ff5a5f', '#ffd23f', '#3ec1d3', '#7bd389', '#ff9f43', '#b388ff', '#ffffff'];
 
 /** Big jump up: confetti bursts over the plot, bigger for bigger moves. */
-function Fireworks({ magnitude, top, seed }: EffectProps) {
+function Fireworks({ magnitude, top, seed, palette = CONFETTI }: EffectProps & { palette?: string[] }) {
   const count = Math.round(24 + magnitude * 40);
   const mesh = useRef<InstancedMesh>(null);
   const material = useMemo(glowMaterial, []);
@@ -77,11 +81,11 @@ function Fireworks({ magnitude, top, seed }: EffectProps) {
   }, [count, seed]);
   useLayoutEffect(() => {
     const c = new Color();
-    for (let i = 0; i < count; i++) mesh.current?.setColorAt(i, c.set(CONFETTI[i % CONFETTI.length]));
+    for (let i = 0; i < count; i++) mesh.current?.setColorAt(i, c.set(palette[i % palette.length]));
     if (mesh.current?.instanceColor) mesh.current.instanceColor.needsUpdate = true;
     // The material may already be compiled without instance colors; recompile with them.
     material.needsUpdate = true;
-  }, [count, material]);
+  }, [count, material, palette]);
   const age = useAge();
   useFrame(({ clock }) => {
     if (!mesh.current) return;
@@ -107,8 +111,8 @@ function Fireworks({ magnitude, top, seed }: EffectProps) {
 }
 
 /** Big drop: a warning siren on a post and dark smoke rising from the plant. */
-function Alarm({ magnitude, top, depth, smoke = true }: EffectProps & { smoke?: boolean }) {
-  const [px, pz] = cornerOffset('backLeft', depth);
+function Alarm({ magnitude, top, depth, archetype, smoke = true }: EffectProps & { smoke?: boolean }) {
+  const [px, pz] = postOffset(eventPosts(archetype, depth).siren, depth);
   const lamp = useMemo(() => new MeshStandardMaterial({ color: '#ff3b2f', emissive: '#ff2a1a', emissiveIntensity: 1, flatShading: true }), []);
   const beams = useRef<Group>(null);
   const puffs = useRef<(Mesh | null)[]>([]);
@@ -152,7 +156,8 @@ function Alarm({ magnitude, top, depth, smoke = true }: EffectProps & { smoke?: 
 }
 
 /** Volume spike: two searchlights sweeping the sky from poles just outside the site's opposite corners. */
-function Spotlights({ magnitude, depth }: EffectProps) {
+function Spotlights({ magnitude, depth, archetype }: EffectProps) {
+  const posts = eventPosts(archetype, depth);
   const geo = useMemo(() => new CylinderGeometry(1.1, 0.1, 9, 18, 1, true).translate(0, 4.5, 0), []);
   const material = useMemo(
     () => new MeshBasicMaterial({ color: '#fff3a8', transparent: true, opacity: 0.18 + magnitude * 0.15, blending: AdditiveBlending, depthWrite: false, toneMapped: false }),
@@ -168,8 +173,8 @@ function Spotlights({ magnitude, depth }: EffectProps) {
   return (
     <>
       {[
-        { ref: a, at: cornerOffset('frontLeft', depth) },
-        { ref: b, at: cornerOffset('backRight', depth) },
+        { ref: a, at: postOffset(posts.lightA, depth) },
+        { ref: b, at: postOffset(posts.lightB, depth) },
       ].map(({ ref, at }, i) => (
         <group key={i} position={[at[0], 0, at[1]]}>
           <Cyl r={POST_BASE_R} h={0.4} color="#3a3a3a" />
@@ -219,7 +224,7 @@ function GoldRing({ top }: EffectProps) {
 }
 
 /** New 20-day low: a small rain cloud hangs over the plot. */
-function RainCloud({ top }: EffectProps) {
+function RainCloud({ top, at = [0, 0] }: EffectProps & { at?: [number, number] }) {
   const drops = useRef<(Mesh | null)[]>([]);
   useFrame(({ clock }) => {
     drops.current.forEach((m, i) => {
@@ -229,7 +234,7 @@ function RainCloud({ top }: EffectProps) {
     });
   });
   return (
-    <group position={[0, top + 1.4, 0]}>
+    <group position={[at[0], top + 1.4, at[1]]}>
       <Ball r={0.8} at={[0, 0, 0]} color="#9aa3ad" />
       <Ball r={0.6} at={[0.8, -0.1, 0.2]} color="#a9b1ba" />
       <Ball r={0.55} at={[-0.8, -0.1, -0.1]} color="#8f98a2" />
@@ -352,6 +357,148 @@ function DustCloud({ magnitude, size, seed }: EffectProps) {
           material={mat('#c8b48e')}
         />
       ))}
+    </>
+  );
+}
+
+const GOLD = ['#ffd23f', '#f2c14e', '#fff2b0', '#ffffff', '#e8b030'];
+
+/** Banks, big move up: the confetti is gold. */
+function GoldConfetti(p: EffectProps) {
+  return <Fireworks {...p} palette={GOLD} />;
+}
+
+/** Banks, big move down: the sirens, and a small dark rain cloud hanging over the plaza. */
+function PlazaRain(p: EffectProps) {
+  const [x, z] = postOffset([BANK.atm.at[0] + 3, BANK.atm.at[1]], p.depth);
+  return (
+    <>
+      <Alarm {...p} smoke={false} />
+      <RainCloud {...p} top={2.6} at={[x, z]} />
+    </>
+  );
+}
+
+/** Oil, big move up: a gusher shoots black crude up from the wellhead beside the rig. */
+function Gusher({ magnitude, seed, depth }: EffectProps) {
+  const n = Math.round(18 + magnitude * 14);
+  const drops = useRef<(Mesh | null)[]>([]);
+  const [wx, wz] = postOffset([OIL.wellhead[0], OIL.wellhead[1]], depth);
+  const spread = useMemo(() => {
+    const rng = createRng(seed + 41);
+    return Array.from({ length: n }, () => ({ a: rng() * Math.PI * 2, r: 0.2 + rng() * 0.9, phase: rng(), s: 0.14 + rng() * 0.14 }));
+  }, [n, seed]);
+  useFrame(({ clock }) => {
+    const reach = 6 + magnitude * 2;
+    drops.current.forEach((m, i) => {
+      if (!m) return;
+      const { a, r, phase, s } = spread[i];
+      const p = (clock.elapsedTime * 0.7 + phase) % 1;
+      // up the middle, then out and down in an arc
+      const up = Math.sin(Math.PI * Math.min(1, p * 1.05));
+      m.position.set(Math.cos(a) * r * p * 1.6, up * reach, Math.sin(a) * r * p * 1.6);
+      m.scale.setScalar(s * (1.2 - p * 0.4));
+    });
+  });
+  return (
+    <group position={[wx, 0, wz]}>
+      <Cyl r={0.55} h={0.15} color="#2a2522" shadow={false} />
+      <Cyl r={0.09} h={reachColumn(magnitude)} color="#2a2522" low shadow={false} />
+      {spread.map((_, i) => (
+        <mesh
+          key={i}
+          ref={(el) => {
+            drops.current[i] = el;
+          }}
+          geometry={GEO.blob}
+          material={mat('#2a2522')}
+        />
+      ))}
+    </group>
+  );
+}
+const reachColumn = (magnitude: number) => 3.2 + magnitude * 1.2;
+
+/** Oil, big move down: the sirens, and a tall column of black smoke rising from the yard. */
+function SmokeColumn(p: EffectProps) {
+  const n = 12;
+  const puffs = useRef<(Mesh | null)[]>([]);
+  useFrame(({ clock }) => {
+    puffs.current.forEach((m, i) => {
+      if (!m) return;
+      const q = (clock.elapsedTime * 0.18 + i / n) % 1;
+      m.position.set(Math.sin(q * 3 + i) * 0.35 * q * 3, q * 9, Math.cos(q * 2 + i) * 0.3 * q * 3);
+      m.scale.setScalar((0.5 + q * 1.5) * Math.sin(Math.PI * Math.min(1, q * 1.05)));
+    });
+  });
+  return (
+    <>
+      <Alarm {...p} smoke={false} />
+      <group position={[-1, 0, 0]}>
+        {Array.from({ length: n }, (_, i) => (
+          <mesh
+            key={i}
+            ref={(el) => {
+              puffs.current[i] = el;
+            }}
+            geometry={GEO.blob}
+            material={mat('#2b2825')}
+          />
+        ))}
+      </group>
+    </>
+  );
+}
+
+/** Tech, big move up: a swarm of lit drones above the HQ circles and weaves in a slow light show. */
+function DroneShow({ top, accent, depth }: EffectProps) {
+  const n = 26;
+  const dots = useRef<(Mesh | null)[]>([]);
+  const [hx, hz] = postOffset([TECH.show[0], TECH.show[1]], depth);
+  const mats = useMemo(() => [accent, '#fff3b0', '#9fd3ee'].map((c) => new MeshBasicMaterial({ color: c, toneMapped: false })), [accent]);
+  useFrame(({ clock }) => {
+    const t = clock.elapsedTime;
+    dots.current.forEach((m, i) => {
+      if (!m) return;
+      const ring = i % 2;
+      const a = t * (ring ? -0.7 : 0.8) + (i / n) * Math.PI * 4;
+      const r = ring ? 1.7 : 2.8 + Math.sin(t * 1.2 + i) * 0.3;
+      m.position.set(Math.cos(a) * r, 0.5 + Math.sin(t * 1.5 + i * 0.7) * 0.7 + ring * 1.1, Math.sin(a) * r);
+    });
+  });
+  return (
+    <group position={[hx, top + 1.2, hz]}>
+      {Array.from({ length: n }, (_, i) => (
+        <mesh
+          key={i}
+          ref={(el) => {
+            dots.current[i] = el;
+          }}
+          geometry={GEO.ball}
+          material={mats[i % 3]}
+          scale={0.13}
+        />
+      ))}
+    </group>
+  );
+}
+
+/** Tech, big move down: the sirens, a rain cloud over the campus, and part of the windows go dark while it lasts. */
+function CampusStorm(p: EffectProps) {
+  const motion = useMotion();
+  useFrame((_, dt) => {
+    motion.blackout += (1 - motion.blackout) * Math.min(1, dt * 3);
+  });
+  useEffect(
+    () => () => {
+      motion.blackout = 0;
+    },
+    [motion],
+  );
+  return (
+    <>
+      <Alarm {...p} smoke={false} />
+      <RainCloud {...p} />
     </>
   );
 }

@@ -135,3 +135,12 @@ export function cementFootprints(): Rect[] {
 export function cementSilos(scale = 1, upgraded = true): Column[] {
   return BAY_Z.map((z) => ({ x: SILO_X, z, r: SILO_R, h: siloHeight(scale, upgraded) }));
 }
+
+// ── oil ──────────────────────────────────────────────────────────────────────
+
+/** The drilling rig's derrick: taller for a bigger company, and a good deal taller after the level-3 upgrade. */
+export const derrickHeight = (scale: number, upgraded: boolean) => 5 + scale * 2.5 + (upgraded ? 1.4 : 0);
+/** White bands up the derrick: one more for each step of company size. */
+export const derrickBands = (scale: number) => 1 + Math.round(scale * 6);
+/** The flare stack's height; the level-6 upgrade lifts it and gives it a bigger burner. */
+export const flareHeight = (upgraded: boolean) => (upgraded ? 6.2 : 4.4);

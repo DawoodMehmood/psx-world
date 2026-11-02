@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { LOT_SIZE } from '../src/config/layout';
-import { cornerOffset, cornerPost, POST_BASE_R } from '../src/world/effects/posts';
-import { FEED_BELT, HOPPER, HOPPER_OPENING, KILN_CX, KILN_LEN, KILN_START, PREHEATER_X, STOCKPILES, BURNER_X, cementFootprints, cementSilos, cementSpots, hides, KILN_Z, siloBands, siloHeight, preheaterBands, preheaterHeight } from '../src/world/buildings/sitePlan';
+import { cornerOffset, cornerPost, eventPosts, POST_BASE_R, spotIsFree } from '../src/world/effects/posts';
+import { derrickBands, derrickHeight, flareHeight, FEED_BELT, HOPPER, HOPPER_OPENING, KILN_CX, KILN_LEN, KILN_START, PREHEATER_X, STOCKPILES, BURNER_X, cementFootprints, cementSilos, cementSpots, hides, KILN_Z, siloBands, siloHeight, preheaterBands, preheaterHeight } from '../src/world/buildings/sitePlan';
 
 describe('cement layout: nothing low hides behind a silo', () => {
   const spots = cementSpots();
@@ -47,40 +47,36 @@ describe('size shows in the number of bands', () => {
   });
 });
 
-describe('event poles stand on the corners of the site, inside the pad', () => {
-  const corners = ['frontLeft', 'frontRight', 'backLeft', 'backRight'] as const;
+describe('event poles', () => {
+  const archetypes = ['cement', 'bank', 'oil', 'tech'] as const;
 
-  it.each([6, 10, 14])('at depth %d every corner pole, base included, is inside the pad and off the street', (depth) => {
-    for (const corner of corners) {
-      const [x, z] = cornerPost(corner, depth);
-      expect(x - POST_BASE_R, corner).toBeGreaterThan(0.05);
-      expect(x + POST_BASE_R, corner).toBeLessThan(LOT_SIZE - 0.05);
-      expect(z - POST_BASE_R, corner).toBeGreaterThan(0.05);
-      expect(z + POST_BASE_R, corner).toBeLessThan(depth - 0.05);
+  it.each(archetypes.flatMap((a) => [6, 10, 14].map((d) => [a, d] as const)))('%s at depth %d: three distinct poles, each inside the pad and clear of every part', (archetype, depth) => {
+    const { lightA, lightB, siren } = eventPosts(archetype, depth);
+    for (const [name, [x, z]] of Object.entries({ lightA, lightB, siren })) {
+      expect(x - POST_BASE_R, name).toBeGreaterThan(0.05);
+      expect(x + POST_BASE_R, name).toBeLessThan(LOT_SIZE - 0.05);
+      expect(z - POST_BASE_R, name).toBeGreaterThan(0.05);
+      expect(z + POST_BASE_R, name).toBeLessThan(depth - 0.05);
+      expect(spotIsFree(archetype, depth, [x, z]), `${archetype} ${name} at ${x},${z}`).toBe(true);
+    }
+    const spots = [lightA, lightB, siren];
+    for (let i = 0; i < 3; i++) for (let j = i + 1; j < 3; j++) expect(Math.hypot(spots[i][0] - spots[j][0], spots[i][1] - spots[j][1])).toBeGreaterThanOrEqual(2 - 1e-9);
+  });
+
+  it('uses the true corners wherever they are free (cement: front-left, back-right, back-left)', () => {
+    for (const depth of [6, 10, 14]) {
+      const { lightA, lightB, siren } = eventPosts('cement', depth);
+      expect(lightA).toEqual(cornerPost('frontLeft', depth));
+      expect(lightB).toEqual(cornerPost('backRight', depth));
+      expect(siren).toEqual(cornerPost('backLeft', depth));
     }
   });
 
-  it.each([6, 10, 14])('at depth %d no cement part stands where a corner pole does', (depth) => {
-    const clash: string[] = [];
-    for (const corner of ['frontLeft', 'backRight', 'backLeft'] as const) {
-      const [x, z] = cornerPost(corner, depth);
-      for (const r of cementFootprints()) {
-        // a pole only matters where the site exists at this depth
-        if (r.minZ > depth) continue;
-        const dx = Math.max(r.minX - x, 0, x - r.maxX);
-        const dz = Math.max(r.minZ - z, 0, z - r.maxZ);
-        if (Math.hypot(dx, dz) < POST_BASE_R + 0.08) clash.push(`${corner} pole meets ${r.name}`);
-      }
+  it('keeps the two searchlights far apart', () => {
+    for (const a of archetypes) for (const depth of [6, 10, 14]) {
+      const { lightA, lightB } = eventPosts(a, depth);
+      expect(Math.hypot(lightA[0] - lightB[0], lightA[1] - lightB[1])).toBeGreaterThan(8);
     }
-    expect(clash).toEqual([]);
-  });
-
-  it('uses opposite corners for the two searchlights and a third for the siren', () => {
-    const [a, b, c] = [cornerPost('frontLeft', 10), cornerPost('backRight', 10), cornerPost('backLeft', 10)];
-    expect(Math.abs(a[0] - b[0])).toBeGreaterThan(LOT_SIZE / 2);
-    expect(Math.abs(a[1] - b[1])).toBeGreaterThan(5);
-    expect(c).not.toEqual(a);
-    expect(c).not.toEqual(b);
   });
 
   it('offsets from the site centre agree with the site coordinates', () => {
@@ -149,5 +145,14 @@ describe('details the cement site gets right', () => {
     expect(y).toBeGreaterThanOrEqual(HOPPER_OPENING.y - HOPPER_OPENING.h - 0.1);
     // the belt comes from the +x side, so the +x face is the one facing it
     expect(FEED_BELT.from[0]).toBeGreaterThan(face);
+  });
+});
+
+describe('oil sizes and upgrades', () => {
+  it('a bigger company has a taller derrick with more bands, and the upgrades add height', () => {
+    expect(derrickHeight(0.97, false)).toBeGreaterThan(derrickHeight(0.76, false));
+    expect(derrickBands(0.97)).toBeGreaterThan(derrickBands(0.4));
+    expect(derrickHeight(0.8, true)).toBeGreaterThan(derrickHeight(0.8, false));
+    expect(flareHeight(true)).toBeGreaterThan(flareHeight(false));
   });
 });
