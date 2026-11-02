@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { LOT_SIZE } from '../src/config/layout';
 import { cornerOffset, cornerPost, POST_BASE_R } from '../src/world/effects/posts';
-import { BURNER_X, cementFootprints, cementSilos, cementSpots, hides, KILN_Z, siloBands, siloHeight, preheaterBands, preheaterHeight } from '../src/world/buildings/sitePlan';
+import { FEED_BELT, HOPPER, HOPPER_OPENING, KILN_CX, KILN_LEN, KILN_START, PREHEATER_X, STOCKPILES, BURNER_X, cementFootprints, cementSilos, cementSpots, hides, KILN_Z, siloBands, siloHeight, preheaterBands, preheaterHeight } from '../src/world/buildings/sitePlan';
 
 describe('cement layout: nothing low hides behind a silo', () => {
   const spots = cementSpots();
@@ -101,7 +101,8 @@ describe('cement footprints', () => {
         const b = rs[j];
         // the truck strip's bays touch their own silos by design
         if (a.name.startsWith('silo bay') && b.name.startsWith('silo bay')) continue;
-        if (a.minX < b.maxX && b.minX < a.maxX && a.minZ < b.maxZ && b.minZ < a.maxZ) overlaps.push(`${a.name} overlaps ${b.name}`);
+        const eps = 1e-6; // parts that merely touch are fine
+        if (a.minX < b.maxX - eps && b.minX < a.maxX - eps && a.minZ < b.maxZ - eps && b.minZ < a.maxZ - eps) overlaps.push(`${a.name} overlaps ${b.name}`);
       }
     }
     expect(overlaps).toEqual([]);
@@ -114,5 +115,39 @@ describe('cement footprints', () => {
       expect(r.minZ, r.name).toBeGreaterThanOrEqual(0.15);
       expect(r.maxX, r.name).toBeLessThanOrEqual(LOT_SIZE - 0.8);
     }
+  });
+});
+
+describe('details the cement site gets right', () => {
+  it('the kiln drum starts flush against the preheater tower, with no gap', () => {
+    const towerFace = PREHEATER_X + 0.85;
+    expect(KILN_START).toBeCloseTo(towerFace, 10);
+    expect(KILN_CX - KILN_LEN / 2).toBeCloseTo(towerFace, 10);
+  });
+
+  it('the two stockpiles keep their original sizes and sit side by side across the front of the second kiln line, touching', () => {
+    const [a, b] = STOCKPILES;
+    expect([a.r, a.h, b.r, b.h]).toEqual([0.8, 1, 0.6, 0.8]);
+    // in a row across the burner's face: same distance from it, spread along z
+    expect(a.at[0]).toBe(b.at[0]);
+    expect(Math.abs(a.at[1] - b.at[1])).toBeLessThanOrEqual(a.r + b.r);
+    expect(Math.abs(a.at[1] - b.at[1])).toBeGreaterThan(Math.max(a.r, b.r));
+    // in front of the burner (clear of its hood) and centred on the kiln's axis
+    expect(a.at[0] - a.r).toBeGreaterThan(BURNER_X + 0.2);
+    const mid = (Math.min(a.at[1] - a.r, b.at[1] - b.r) + Math.max(a.at[1] + a.r, b.at[1] + b.r)) / 2;
+    expect(Math.abs(mid - KILN_Z[1])).toBeLessThan(0.25);
+    for (const p of STOCKPILES) expect(p.at[1] + p.r).toBeLessThanOrEqual(10 - 0.8);
+  });
+
+  it('the feed belt ends just outside the black opening in the hopper face it arrives at', () => {
+    const [x, y, z] = FEED_BELT.to;
+    const face = HOPPER.at[0] + HOPPER.w / 2;
+    expect(x - face).toBeGreaterThan(0.05);
+    expect(x - face).toBeLessThan(0.3);
+    expect(Math.abs(z - HOPPER_OPENING.z)).toBeLessThan(HOPPER_OPENING.w / 2 + 0.1);
+    expect(y).toBeLessThanOrEqual(HOPPER_OPENING.y + 0.1);
+    expect(y).toBeGreaterThanOrEqual(HOPPER_OPENING.y - HOPPER_OPENING.h - 0.1);
+    // the belt comes from the +x side, so the +x face is the one facing it
+    expect(FEED_BELT.from[0]).toBeGreaterThan(face);
   });
 });

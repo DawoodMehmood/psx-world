@@ -52,9 +52,11 @@ export const SILO_R = 0.6;
 export const KILN_Z = [3.4, 7.9, 12.0];
 export const PREHEATER_X = 1.1;
 /** Short enough that the burner hood stands clear of the silos' line of sight. */
-export const KILN_LEN = 3.0;
-/** Drum center: from just in front of the preheater, running toward +x. */
-export const KILN_CX = 2.3 + KILN_LEN / 2;
+export const KILN_LEN = 3.35;
+/** The drum starts flush against the preheater's face (x = 1.95) and runs toward +x. */
+export const KILN_START = PREHEATER_X + 0.85;
+/** Drum center. */
+export const KILN_CX = KILN_START + KILN_LEN / 2;
 /** Burner hood centre: the front end of a kiln line. */
 export const BURNER_X = KILN_CX + KILN_LEN / 2 + 0.45;
 /** Hall, along the back edge behind the first kiln. */
@@ -68,7 +70,21 @@ export const QUARRY = { normal: { at: [4.6, 5.25], w: 2.6, d: 1.3 }, wide: { at:
 export const EXCAVATOR: [number, number] = [4.6, 5.5];
 /** Feed hopper against the first preheater's front face, fed by a short low belt from the quarry; the elevator (level 3) rises from it. */
 export const HOPPER = { at: [1.2, 4.78], w: 0.8, d: 0.8, h: 0.7 } as const;
-export const FEED_BELT = { from: [3.5, 0.3, 5.3], to: [1.6, 0.75, 4.85] } as const;
+/**
+ * The belt ends just outside a black opening in the hopper's side that faces
+ * it (the +x face), as if dumping into it.
+ */
+export const FEED_BELT = { from: [3.5, 0.3, 5.3], to: [1.75, 0.5, 4.85] } as const;
+/** The opening on the hopper's +x face: centre height and z, and its size. */
+export const HOPPER_OPENING = { z: 4.82, y: 0.4, w: 0.5, h: 0.36 } as const;
+/**
+ * Two heaps of clinker side by side in front of the second kiln line's burner
+ * opening, in a row across its face and touching, centred on the kiln's axis.
+ */
+export const STOCKPILES = [
+  { at: [7.0, 7.25], r: 0.8, h: 1.0 },
+  { at: [7.0, 8.55], r: 0.6, h: 0.8 },
+] as const;
 
 /** Taller companies get taller silos; the first upgrade only adds a little, because silos hide what is behind them. */
 export const siloHeight = (scale: number, upgraded: boolean) => 2.8 + scale * 1.6 + (upgraded ? 0.4 : 0);
@@ -81,7 +97,7 @@ export const preheaterBands = (scale: number) => 2 + Math.round(scale * 5);
 export function cementSpots(): Spot[] {
   const spots: Spot[] = [];
   KILN_Z.forEach((z, i) => {
-    for (let x = 2.3; x <= BURNER_X; x += 0.5) spots.push({ name: `kiln ${i} drum x=${x}`, x, y: 1.15, z });
+    for (let x = KILN_START; x <= BURNER_X; x += 0.5) spots.push({ name: `kiln ${i} drum x=${x}`, x, y: 1.15, z });
     spots.push({ name: `kiln ${i} burner`, x: BURNER_X, y: 0.6, z });
   });
   spots.push({ name: 'hall end', x: HALL_X + 1.8, y: 1.1, z: HALL_Z });
@@ -105,11 +121,12 @@ const rect = (name: string, cx: number, cz: number, w: number, d: number): Rect 
 /** Ground footprints of everything that can stand on a cement site (all tiers and upgrades), for checks. */
 export function cementFootprints(): Rect[] {
   return [
-    ...KILN_Z.map((z, i) => ({ name: `kiln line ${i}`, minX: PREHEATER_X - 0.85, maxX: BURNER_X + 0.45, minZ: z - 0.95, maxZ: z + 0.95 })),
+    ...KILN_Z.map((z, i) => ({ name: `kiln line ${i}`, minX: PREHEATER_X - 0.85, maxX: BURNER_X + 0.45, minZ: z - 0.9, maxZ: z + 0.9 })),
     rect('hall', HALL_X, HALL_Z, 3.6, 2.0),
     rect('packing house', PACKING.at[0], PACKING.at[1], PACKING.w, PACKING.d),
     rect('quarry (wide)', QUARRY.wide.at[0], QUARRY.wide.at[1], QUARRY.wide.w, QUARRY.wide.d),
     rect('hopper', HOPPER.at[0], HOPPER.at[1], HOPPER.w, HOPPER.d),
+    rect('stockpiles', 7.0, 7.8, 1.6, 2.7),
     ...BAY_Z.map((z, i) => ({ name: `silo bay ${i}`, minX: SILO_X - SILO_R, maxX: 14, minZ: z - 0.55, maxZ: z + 0.55 })),
   ];
 }

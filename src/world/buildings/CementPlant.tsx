@@ -11,7 +11,8 @@ import { agentCount, useMotion } from '../motion';
 import { BAY_Z, BayLines, BayVehicles, ClosedBay, DOCK_X, isBuilt, openBays, runningCount, Slots, Weeds, type SlotDesign } from './shared';
 import { crewMax } from '../../engine/visual';
 import { UpgradeSite } from '../construction/UpgradeSite';
-import { BURNER_X, EXCAVATOR, FEED_BELT, HALL_X, HALL_Z, HOPPER, KILN_CX, KILN_LEN, KILN_Z, PACKING, PREHEATER_X, preheaterBands, preheaterHeight, QUARRY, SILO_R, SILO_X, siloBands, siloHeight } from './sitePlan';
+import { dumpDrop, flowPhase } from '../flow';
+import { BURNER_X, EXCAVATOR, FEED_BELT, HALL_X, HALL_Z, HOPPER, HOPPER_OPENING, KILN_CX, KILN_LEN, KILN_Z, PACKING, PREHEATER_X, preheaterBands, preheaterHeight, QUARRY, SILO_R, SILO_X, siloBands, siloHeight, STOCKPILES } from './sitePlan';
 import type { ArchetypeProps } from './types';
 
 /*
@@ -88,7 +89,7 @@ const SLOTS: SlotDesign[] = [
   {
     at: [KILN_PAD_CX, KILN_Z[1]],
     w: KILN_PAD_W,
-    d: 1.9,
+    d: 1.8,
     h: 2.8,
     crane: [8.4, 6.5],
     built: (p) => <KilnLine line={1} {...p} />,
@@ -106,7 +107,7 @@ const SLOTS: SlotDesign[] = [
   {
     at: [KILN_PAD_CX, KILN_Z[2]],
     w: KILN_PAD_W,
-    d: 1.9,
+    d: 1.8,
     h: 2.8,
     crane: [8.4, 10.6],
     built: (p) => <KilnLine line={2} {...p} />,
@@ -141,8 +142,8 @@ export function CementPlant(props: ArchetypeProps) {
       <Hall h={h} extended={wide} />
       <KilnLine line={0} {...props} />
       <Quarry wide={wide} />
-      {/* raw material: a short, low belt from the quarry into a hopper at the first preheater's foot */}
-      <Conveyor from={[...FEED_BELT.from]} to={[...FEED_BELT.to]} />
+      {/* raw material: a short, low belt from the quarry that ends at a black opening in the side of the hopper at the first preheater's foot */}
+      <Conveyor from={[...FEED_BELT.from]} to={[...FEED_BELT.to]} dump={0.12} />
       <Hopper />
       {done(props, RAISED_SILOS) && <Elevator h={preheaterHeight(props.scale, done(props, TALL_KILNS)) - 0.5} />}
       {wide && <Excavator />}
@@ -160,11 +161,12 @@ export function CementPlant(props: ArchetypeProps) {
 
       {h <= 0 && <Weeds depth={SITE_TIERS.cement[tier - 1].depth} seed={props.seed} />}
 
-      {/* tier 2 yard: clinker stockpiles between the kiln rows, well inside the site's edge (it is 10 deep at this tier) */}
+      {/* tier 2 yard: two clinker heaps side by side across the front of the second kiln line's burner opening */}
       {tier >= 2 && (
         <Static>
-          <Cone r={0.7} h={0.9} at={[8.3, 0, 8.1]} color="#9a948a" />
-          <Cone r={0.5} h={0.7} at={[7.0, 0, 8.5]} color="#a8a196" />
+          {STOCKPILES.map((p, i) => (
+            <Cone key={i} r={p.r} h={p.h} at={[p.at[0], 0, p.at[1]]} color={i ? '#a8a196' : '#9a948a'} />
+          ))}
         </Static>
       )}
 
@@ -390,7 +392,8 @@ function PackingHouse({ accent }: { accent: string }) {
       <Static>
         <Box size={[2.1, 1.5, 1.5]} color="#f6f1e4" rounded={0.08} />
         <Box size={[2.12, 0.2, 1.52]} at={[0, 0.8, 0]} color={accent} />
-        <group position={[0, 1.5, 0]}>
+        {/* ridge along the shed's long side, like the hall's */}
+        <group position={[0, 1.5, 0]} rotation={[0, Math.PI / 2, 0]}>
           <Roof w={1.7} d={2.3} h={0.55} color="#9b9284" />
         </group>
         {/* door and windows on the faces the camera sees */}
@@ -464,7 +467,7 @@ function Excavator() {
 }
 
 /** Short belt from the quarry up to the hopper, with rock chunks riding it; more of them, faster, when busy. */
-function Conveyor({ from, to }: { from: Vec3; to: Vec3 }) {
+function Conveyor({ from, to, dump = 0 }: { from: Vec3; to: Vec3; dump?: number }) {
   const motion = useMotion();
   const chunks = useRef<(Mesh | null)[]>([]);
   const { mid, len, q, legs } = useMemo(() => {
@@ -482,8 +485,13 @@ function Conveyor({ from, to }: { from: Vec3; to: Vec3 }) {
     chunks.current.forEach((m, i) => {
       if (!m) return;
       m.visible = i < count;
-      const u = (motion.t * 0.16 + i / 8) % 1;
+      // evenly spaced however many are out, so it reads as a stream and not as batches
+      const u = flowPhase(i, count, motion.t * 0.16);
       m.position.x = -len / 2 + u * len;
+      // at the end of a dumping belt each rock tips over the end into the opening, shrinking out of sight (`dump` is how far it falls)
+      const drop = dump ? dumpDrop(u) : 0;
+      m.position.y = 0.17 - drop * dump;
+      m.scale.set(0.15 * (1 - drop * 0.8), 0.11 * (1 - drop * 0.8), 0.14 * (1 - drop * 0.8));
     });
   });
   return (
@@ -517,12 +525,14 @@ function Conveyor({ from, to }: { from: Vec3; to: Vec3 }) {
   );
 }
 
-/** Feed hopper against the first preheater's front face: the quarry belt ends in it. */
+/** Feed hopper against the first preheater's front face, with a black opening in the side facing the quarry belt, which dumps into it. */
 function Hopper() {
   return (
     <Static>
       <Box size={[HOPPER.w, HOPPER.h, HOPPER.d]} at={[HOPPER.at[0], 0, HOPPER.at[1]]} color="#8a8174" />
       <Box size={[HOPPER.w + 0.12, 0.08, HOPPER.d + 0.12]} at={[HOPPER.at[0], HOPPER.h, HOPPER.at[1]]} color="#5f584f" />
+      {/* the black opening in the face the belt arrives at: it dumps into it */}
+      <Box size={[0.03, HOPPER_OPENING.h, HOPPER_OPENING.w]} at={[HOPPER.at[0] + HOPPER.w / 2 + 0.005, HOPPER_OPENING.y - HOPPER_OPENING.h / 2, HOPPER_OPENING.z]} color="#141210" shadow={false} />
     </Static>
   );
 }
@@ -539,7 +549,7 @@ function Elevator({ h }: { h: number }) {
     buckets.current.forEach((m, i) => {
       if (!m) return;
       m.visible = i < count;
-      m.position.y = base + ((motion.t * 0.14 + i / 7) % 1) * (h - base - 0.1);
+      m.position.y = base + flowPhase(i, count, motion.t * 0.14) * (h - base - 0.1);
     });
   });
   return (

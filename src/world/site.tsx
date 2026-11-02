@@ -6,6 +6,7 @@ import { createRng } from '../engine/rng';
 import type { SlotState } from '../engine/types';
 import { Workers } from './agents';
 import { STAKE } from './construction/ConstructionSlot';
+import { fencePosts } from './fence';
 import { Box, Trees } from './kit';
 import { Static } from './Static';
 import { useMotion } from './motion';
@@ -18,15 +19,10 @@ import { useMotion } from './motion';
 
 /**
  * Site expansion in progress (SPEC §8): stakes along the new boundary, then
- * the land is graded, then fence and gravel go in.
+ * the land is graded, then fence and gravel go in. Every rope ends on a post.
  */
 export function SiteExpansion({ from, to, stage, paused }: { from: number; to: number; stage: SlotState['stage']; paused: boolean }) {
-  const posts = useMemo(() => {
-    const pts: [number, number][] = [];
-    for (let x = 0; x <= LOT_SIZE; x += 1.6) pts.push([x, to]);
-    for (let z = from + 1.6; z < to; z += 1.6) pts.push([0, z], [LOT_SIZE, z]);
-    return pts;
-  }, [from, to]);
+  const posts = useMemo(() => fencePosts(from, to), [from, to]);
   const ground = stage === 'FOUNDATION' ? '#b08d63' : stage === 'FRAME' ? '#d4cab4' : null;
   const mid = (from + to) / 2;
   const deep = to - from;

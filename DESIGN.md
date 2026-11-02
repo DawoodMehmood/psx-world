@@ -367,6 +367,15 @@ Each step ends with tests and a build.
 - **Event poles** (two searchlights, the siren) stand inside the pad on its very corners (`world/effects/posts.ts`), not out on the street. A test checks that no cement part stands there; **the other three sectors have not been checked**, so their corners may still clash until their plans are written.
 - `cementFootprints()` in `sitePlan.ts` gives every cement part a ground footprint, and tests check no two overlap and nothing but the truck strip is within 0.8 of the pad edge. The same footprint lists are still to be written for banks, oil and tech.
 
+### Step 5, cement third pass (built, for review by eye)
+
+- **Hopper opening** is a black rectangle in the hopper's side face that the feed belt arrives at (the +x face); the belt ends just outside it and each rock tips over the end and shrinks out of sight. (The first version had the opening on top; if the side one doesn't read, revert to the top opening in `Hopper`.)
+- **Stockpiles** are back to their original sizes (r 0.8 and 0.6) and sit side by side across the front of the second kiln line's burner opening, touching and centred on the kiln's axis; the tier-2 lane that crossed them is shortened.
+- **Kiln drum** starts flush against the preheater tower's face (no gap); the drum is a little longer so the burner stays clear of the silos' line of sight.
+- **Packing-house roof** is rotated so its ridge runs along the shed's long side, like the hall's.
+- **Expansion rope** (`world/fence.ts`): posts stand at every corner and evenly along each side, so no rope end hangs in the air.
+- **Material flow** (`world/flow.ts`): rocks on the belt and buckets on the elevator stay evenly spaced however many are out, so they read as a stream, not batches of three.
+
 ## 12. Items to tune by eye, and open questions
 
 Starting numbers to tune: all band thresholds, weights (0.7/0.3 ceiling; 0.35/0.25/0.40 health; 0.7/0.3 activity), the 60-day and 5-year windows, build durations, hysteresis margins, the level at which footprint steps.
