@@ -8,10 +8,10 @@ import { MixerTruck, Workers, type Lane } from '../agents';
 import { Box, Cone, Cyl, GEO, mat, Roof, Rope, TARP_BLUE, type Vec3 } from '../kit';
 import { Static } from '../Static';
 import { agentCount, useMotion } from '../motion';
-import { BAY_Z, BayLines, BayVehicles, BUILD_W, ClosedBay,  DOCK_X, isBuilt, openBays, runningCount, Slots, Weeds, type SlotDesign } from './shared';
+import { BAY_Z, BayLines, BayVehicles, ClosedBay, DOCK_X, isBuilt, openBays, runningCount, Slots, Weeds, type SlotDesign } from './shared';
 import { crewMax } from '../../engine/visual';
 import { UpgradeSite } from '../construction/UpgradeSite';
-import { BURNER_X, DOME, EXCAVATORS, HALL_X, HALL_Z, KILN_CX, KILN_LEN, KILN_Z, PREHEATER_X, preheaterBands, preheaterHeight, QUARRY, SILO_R, SILO_X, siloBands, siloHeight } from './sitePlan';
+import { BURNER_X, EXCAVATOR, FEED_BELT, HALL_X, HALL_Z, HOPPER, KILN_CX, KILN_LEN, KILN_Z, PACKING, PREHEATER_X, preheaterBands, preheaterHeight, QUARRY, SILO_R, SILO_X, siloBands, siloHeight } from './sitePlan';
 import type { ArchetypeProps } from './types';
 
 /*
@@ -21,9 +21,9 @@ import type { ArchetypeProps } from './types';
  *   back-left edge   a preheater tower per kiln line (the tallest parts), rows z 3.4 · 7.9 · 12
  *   kiln drums       run from each preheater toward the front-right, burner facing the camera
  *   back edge        the hall (low), behind the first kiln
- *   front of row 1   quarry and the conveyor up to the first preheater
+ *   front of row 1   quarry, a short low belt to a hopper at the first preheater's foot (an elevator climbs from it at level 3)
  *   front-right      silos beside the truck strip, one bay each; loading wings add more toward the front
- *   between rows     clinker stockpiles (tier 2) and the clinker dome (tier 3), both low,
+ *   between rows     stockpiles (tier 2) and the packing house (level 8), both low,
  *                    clear of the tall silos so nothing hides them
  */
 
@@ -113,13 +113,13 @@ const SLOTS: SlotDesign[] = [
     partial: (p) => <KilnLine line={2} {...p} bare />,
   },
   {
-    at: DOME,
-    w: 2.6,
-    d: 2.4,
-    h: 2.2,
-    crane: [3.2, 10.0],
-    built: () => <ClinkerDome />,
-    partial: () => <Cyl r={1.15} h={0.5} at={[DOME[0], 0, DOME[1]]} color="#cfc8ba" />,
+    at: [PACKING.at[0], PACKING.at[1]],
+    w: PACKING.w,
+    d: PACKING.d,
+    h: 2.0,
+    crane: [3.0, 10.0],
+    built: (p) => <PackingHouse accent={p.accent} />,
+    partial: () => <Box size={[PACKING.w - 0.3, 0.5, PACKING.d - 0.3]} at={[PACKING.at[0], 0, PACKING.at[1]]} color="#cfc8ba" />,
   },
   {
     at: [BAY_CX, (BAY_Z[5] + BAY_Z[6]) / 2],
@@ -141,14 +141,17 @@ export function CementPlant(props: ArchetypeProps) {
       <Hall h={h} extended={wide} />
       <KilnLine line={0} {...props} />
       <Quarry wide={wide} />
-      <Conveyor from={[3.6, 0.3, 5.2]} to={[1.9, 2.6, 4.0]} />
-      {done(props, RAISED_SILOS) && <Conveyor from={[5.4, 0.3, 5.5]} to={[3.7, 0.3, 5.2]} />}
-      {wide && <Excavators />}
+      {/* raw material: a short, low belt from the quarry into a hopper at the first preheater's foot */}
+      <Conveyor from={[...FEED_BELT.from]} to={[...FEED_BELT.to]} />
+      <Hopper />
+      {done(props, RAISED_SILOS) && <Elevator h={preheaterHeight(props.scale, done(props, TALL_KILNS)) - 0.5} />}
+      {wide && <Excavator />}
 
-      {/* upgrades being fitted: scaffolding round the silos, the first preheater and the quarry (the hall's second storey is part of the same last upgrade, but the scaffold goes where the work shows) */}
+      {/* upgrades being fitted: scaffolding round the silos, the elevator, the first preheater and the quarry */}
       <UpgradeSite state={upgrades[RAISED_SILOS]} at={[SILO_X, 2.2]} w={1.9} d={3.6} h={siloHeight(props.scale, false) - 0.2} />
+      <UpgradeSite state={upgrades[RAISED_SILOS]} at={[HOPPER.at[0], HOPPER.at[1] - 0.1]} w={1.3} d={1.2} h={preheaterHeight(props.scale, false) - 0.6} />
       <UpgradeSite state={upgrades[TALL_KILNS]} at={[PREHEATER_X, KILN_Z[0]]} w={2.2} d={2.2} h={preheaterHeight(props.scale, false) - 0.3} />
-      <UpgradeSite state={upgrades[WIDE_YARD]} at={QUARRY.wide.at as unknown as [number, number]} w={3.2} d={2.4} h={1.5} />
+      <UpgradeSite state={upgrades[WIDE_YARD]} at={[QUARRY.wide.at[0], QUARRY.wide.at[1]]} w={3.2} d={2.4} h={1.5} />
 
       {/* the original two silos and bays */}
       {[0, 1].map((i) => (
@@ -157,11 +160,11 @@ export function CementPlant(props: ArchetypeProps) {
 
       {h <= 0 && <Weeds depth={SITE_TIERS.cement[tier - 1].depth} seed={props.seed} />}
 
-      {/* tier 2 yard: clinker stockpiles between the kiln rows */}
+      {/* tier 2 yard: clinker stockpiles between the kiln rows, well inside the site's edge (it is 10 deep at this tier) */}
       {tier >= 2 && (
         <Static>
-          <Cone r={0.8} h={1} at={[8.7, 0, 9.1]} color="#9a948a" />
-          <Cone r={0.6} h={0.8} at={[7.6, 0, 9.3]} color="#a8a196" />
+          <Cone r={0.7} h={0.9} at={[8.3, 0, 8.1]} color="#9a948a" />
+          <Cone r={0.5} h={0.7} at={[7.0, 0, 8.5]} color="#a8a196" />
         </Static>
       )}
 
@@ -218,8 +221,7 @@ function Hall({ h, extended }: { h: number; extended: boolean }) {
 
 /**
  * A silo with its loading spout over its own painted truck bay. Health shows
- * as a pennant (thriving), cones across the bay when it is closed, and
- * patches on the silo (struggling).
+ * as cones across the bay when it is closed and patches on the silo (struggling).
  */
 function SiloBay({ bay, scale, accent, health, slots, upgrades }: ArchetypeProps & { bay: number }) {
   const h = HEALTH.indexOf(health);
@@ -247,29 +249,17 @@ function SiloBay({ bay, scale, accent, health, slots, upgrades }: ArchetypeProps
       <BayLines z={z} />
       {h <= 0 && <Box size={[0.05, 0.6, 0.45]} at={[SILO_X + SILO_R + 0.01, siloH * 0.3, z]} color="#a39d92" shadow={false} />}
       {closed && <ClosedBay z={z} />}
-      {h >= 4 && (
-        <group position={[SILO_X, siloH + 0.4, z]}>
-          <Cyl r={0.03} h={0.7} color="#f2efe6" low shadow={false} />
-          <Box size={[0.04, 0.24, 0.36]} at={[0, 0.42, 0.2]} color={accent} shadow={false} />
-        </group>
-      )}
     </Static>
   );
 }
 
-/** Two more silo bays under a shared canopy over the truck strip. */
+/** Two more silo bays, the same as every other: each silo loads the truck in its own bay. */
 function LoadingWing({ bays, ...p }: ArchetypeProps & { bays: number[] }) {
-  const z = (BAY_Z[bays[0]] + BAY_Z[bays[1]]) / 2;
-  const span = BAY_Z[bays[1]] - BAY_Z[bays[0]] + 1.2;
   return (
     <group>
       {bays.map((i) => (
         <SiloBay key={i} bay={i} {...p} />
       ))}
-      <Static>
-        <Box size={[2.4, 0.12, span]} at={[BUILD_W + 1.25, 2.3, z]} color={p.accent} rounded={0.04} />
-        {[BUILD_W + 0.15, BUILD_W + 2.35].flatMap((x) => [z - span / 2 + 0.1, z + span / 2 - 0.1].map((pz) => <Box key={`${x}${pz}`} size={[0.1, 2.3, 0.1]} at={[x, 0, pz]} color="#8a8174" />))}
-      </Static>
     </group>
   );
 }
@@ -393,14 +383,28 @@ function KilnGlow({ at, cold = false }: { at: Vec3; cold?: boolean }) {
   );
 }
 
-/** Domed clinker store (tier 3). */
-function ClinkerDome() {
+/** Packing house (level 8): bags are filled here and stacked for the trucks. White shed with the company's band, a door, windows and pallets of bags. */
+function PackingHouse({ accent }: { accent: string }) {
   return (
-    <group position={[DOME[0], 0, DOME[1]]}>
+    <group position={[PACKING.at[0], 0, PACKING.at[1]]}>
       <Static>
-      <Cyl r={1.2} h={0.5} color="#cfc8ba" />
-      <mesh geometry={GEO.dome} material={mat('#e6e1d6')} position={[0, 0.5, 0]} scale={[1.15, 1.1, 1.15]} castShadow receiveShadow />
-      <Box size={[0.5, 0.6, 0.06]} at={[0, 0.2, 1.18]} color="#7d756a" shadow={false} />
+        <Box size={[2.1, 1.5, 1.5]} color="#f6f1e4" rounded={0.08} />
+        <Box size={[2.12, 0.2, 1.52]} at={[0, 0.8, 0]} color={accent} />
+        <group position={[0, 1.5, 0]}>
+          <Roof w={1.7} d={2.3} h={0.55} color="#9b9284" />
+        </group>
+        {/* door and windows on the faces the camera sees */}
+        <Box size={[0.06, 0.9, 0.7]} at={[1.06, 0, -0.1]} color="#7d756a" shadow={false} />
+        {[-0.55, 0.45].map((x) => (
+          <Box key={x} size={[0.4, 0.35, 0.04]} at={[x, 0.95, 0.76]} color="#cfe9f7" shadow={false} />
+        ))}
+        {/* pallets of bags along the front */}
+        {[-0.6, 0.1, 0.8].map((x, i) => (
+          <group key={x}>
+            <Box size={[0.55, 0.12, 0.4]} at={[x, 0, 1.05]} color="#c8935a" />
+            <Box size={[0.5, 0.3 + (i % 2) * 0.15, 0.36]} at={[x, 0.12, 1.05]} color="#fbfaf5" rounded={0.03} />
+          </group>
+        ))}
       </Static>
     </group>
   );
@@ -425,42 +429,41 @@ function Quarry({ wide = false }: { wide?: boolean }) {
   );
 }
 
-/** Two diggers working the widened quarry: the boom rises and dips with the plot's clock, faster when busy. */
-function Excavators() {
-  return (
-    <>
-      <Excavator at={[EXCAVATORS[0][0], 0.03, EXCAVATORS[0][1]]} phase={0} />
-      <Excavator at={[EXCAVATORS[1][0], 0.03, EXCAVATORS[1][1]]} phase={2.1} />
-    </>
-  );
-}
-
-function Excavator({ at, phase }: { at: Vec3; phase: number }) {
+/** One excavator working the widened quarry: tracks, a turning cab, a boom, a stick and a bucket that dig and lift. */
+function Excavator() {
   const motion = useMotion();
   const body = useRef<Group>(null);
   const boom = useRef<Group>(null);
+  const stick = useRef<Group>(null);
   useFrame(() => {
-    if (!body.current || !boom.current) return;
-    const t = motion.t * 0.9 + phase;
-    body.current.rotation.y = Math.sin(t * 0.5) * 0.9;
-    boom.current.rotation.z = -0.55 + Math.sin(t) * 0.35;
+    if (!body.current || !boom.current || !stick.current) return;
+    const t = motion.t * 0.8;
+    body.current.rotation.y = Math.sin(t * 0.45) * 0.8;
+    boom.current.rotation.z = 0.7 + Math.sin(t) * 0.1;
+    stick.current.rotation.z = -1.2 + Math.sin(t) * 0.35;
   });
   return (
-    <group position={at}>
-      <Box size={[0.95, 0.2, 0.5]} at={[0, 0, 0]} color="#3a3a3a" />
-      <group ref={body} position={[0, 0.2, 0]}>
-        <Box size={[0.6, 0.32, 0.5]} color="#f2b632" rounded={0.04} />
-        <Box size={[0.26, 0.28, 0.3]} at={[-0.12, 0.32, 0]} color="#cfe9f7" />
-        <group ref={boom} position={[0.3, 0.22, 0]}>
-          <Box size={[0.8, 0.09, 0.1]} at={[0.4, 0, 0]} color="#f2b632" />
-          <Box size={[0.2, 0.17, 0.22]} at={[0.8, -0.1, 0]} color="#6d675f" />
+    <group position={[EXCAVATOR[0], 0.04, EXCAVATOR[1]]} scale={1.5}>
+      <Box size={[1.1, 0.24, 0.6]} color="#3a3a3a" />
+      <Box size={[1.2, 0.07, 0.2]} at={[0, 0.2, 0.3]} color="#575757" shadow={false} />
+      <Box size={[1.2, 0.07, 0.2]} at={[0, 0.2, -0.3]} color="#575757" shadow={false} />
+      <group ref={body} position={[0, 0.24, 0]}>
+        <Box size={[0.8, 0.34, 0.7]} color="#f2b632" rounded={0.04} />
+        <Box size={[0.32, 0.36, 0.4]} at={[-0.12, 0.34, 0.1]} color="#cfe9f7" />
+        <Box size={[0.3, 0.3, 0.7]} at={[-0.5, 0, 0]} color="#8a8174" />
+        <group ref={boom} position={[0.3, 0.3, 0]}>
+          <Box size={[1.1, 0.14, 0.16]} at={[0.55, 0, 0]} color="#f2b632" />
+          <group ref={stick} position={[1.1, 0, 0]}>
+            <Box size={[0.8, 0.12, 0.14]} at={[0.4, 0, 0]} color="#e0a52a" />
+            <Box size={[0.3, 0.24, 0.36]} at={[0.85, -0.08, 0]} color="#6d675f" />
+          </group>
         </group>
       </group>
     </group>
   );
 }
 
-/** Belt from the quarry up to the first preheater, with rock chunks riding it; more of them, faster, when busy. */
+/** Short belt from the quarry up to the hopper, with rock chunks riding it; more of them, faster, when busy. */
 function Conveyor({ from, to }: { from: Vec3; to: Vec3 }) {
   const motion = useMotion();
   const chunks = useRef<(Mesh | null)[]>([]);
@@ -510,6 +513,57 @@ function Conveyor({ from, to }: { from: Vec3; to: Vec3 }) {
           <Box key={p.x} size={[0.12, p.y - 0.1, 0.12]} at={[p.x, 0, p.z]} color="#5f584f" />
         ))}
       </Static>
+    </group>
+  );
+}
+
+/** Feed hopper against the first preheater's front face: the quarry belt ends in it. */
+function Hopper() {
+  return (
+    <Static>
+      <Box size={[HOPPER.w, HOPPER.h, HOPPER.d]} at={[HOPPER.at[0], 0, HOPPER.at[1]]} color="#8a8174" />
+      <Box size={[HOPPER.w + 0.12, 0.08, HOPPER.d + 0.12]} at={[HOPPER.at[0], HOPPER.h, HOPPER.at[1]]} color="#5f584f" />
+    </Static>
+  );
+}
+
+/** Bucket elevator (level 3): a slim column hugging the preheater's front face, buckets riding up it; more of them when busy. */
+function Elevator({ h }: { h: number }) {
+  const motion = useMotion();
+  const buckets = useRef<(Mesh | null)[]>([]);
+  const x = HOPPER.at[0];
+  const z = 4.55;
+  const base = HOPPER.h + 0.05;
+  useFrame(() => {
+    const count = agentCount(motion, 7, 2);
+    buckets.current.forEach((m, i) => {
+      if (!m) return;
+      m.visible = i < count;
+      m.position.y = base + ((motion.t * 0.14 + i / 7) % 1) * (h - base - 0.1);
+    });
+  });
+  return (
+    <group>
+      <Static>
+        <Box size={[0.42, h - base, 0.34]} at={[x, base, z]} color="#4d4740" />
+        <Box size={[0.56, 0.24, 0.5]} at={[x, h, z - 0.04]} color="#8a8174" />
+        {/* a few ties back to the tower */}
+        {[0.35, 0.65].map((f) => (
+          <Box key={f} size={[0.12, 0.1, 0.3]} at={[x, base + (h - base) * f, z - 0.3]} color="#8a8174" shadow={false} />
+        ))}
+      </Static>
+      {Array.from({ length: 7 }, (_, i) => (
+        <mesh
+          key={i}
+          ref={(el) => {
+            buckets.current[i] = el;
+          }}
+          geometry={GEO.box}
+          material={mat('#b49a78')}
+          position={[x + 0.25, base, z]}
+          scale={[0.1, 0.16, 0.2]}
+        />
+      ))}
     </group>
   );
 }

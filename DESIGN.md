@@ -357,6 +357,16 @@ Each step ends with tests and a build.
 - **Event poles** (the two searchlights and the crash siren) stand just outside the site pad at its corners (`world/effects/posts.ts`), so nothing on any site can be in their way; before, they were placed from the effect's own size, which for a shallow site landed in the middle of the plot.
 - **Last upgrade:** the hall gains a second storey instead of a longer wing (it stays out of the silos' line of sight).
 
+### Step 5, cement second pass (built, for review by eye)
+
+- **Raw feed:** the soaring belt is gone. A short, low belt runs from the quarry into a hopper at the first preheater's foot; the level-3 upgrade adds a bucket elevator climbing the tower's front face (buckets ride up it) and the silo walkway ring. The feeder belt over the quarry is gone.
+- **No loading-wing shed:** the wing levels are just two more silo bays, the same as every other bay.
+- **No dome:** level 8 is a packing house (white shed with the company band, door, windows, pallets of bags) in the gap between the second and third kiln pads. Its pad no longer overlaps a kiln pad.
+- **Stockpiles** moved well inside the site's edge; **silo pennants** removed everywhere.
+- **Level 10:** one clearly shaped excavator (tracks, turning cab, boom, stick, bucket) works the widened quarry; the hall's second storey stays.
+- **Event poles** (two searchlights, the siren) stand inside the pad on its very corners (`world/effects/posts.ts`), not out on the street. A test checks that no cement part stands there; **the other three sectors have not been checked**, so their corners may still clash until their plans are written.
+- `cementFootprints()` in `sitePlan.ts` gives every cement part a ground footprint, and tests check no two overlap and nothing but the truck strip is within 0.8 of the pad edge. The same footprint lists are still to be written for banks, oil and tech.
+
 ## 12. Items to tune by eye, and open questions
 
 Starting numbers to tune: all band thresholds, weights (0.7/0.3 ceiling; 0.35/0.25/0.40 health; 0.7/0.3 activity), the 60-day and 5-year windows, build durations, hysteresis margins, the level at which footprint steps.

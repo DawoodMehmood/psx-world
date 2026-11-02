@@ -60,15 +60,15 @@ export const BURNER_X = KILN_CX + KILN_LEN / 2 + 0.45;
 /** Hall, along the back edge behind the first kiln. */
 export const HALL_X = 3.9;
 export const HALL_Z = 1.2;
-/** Between the second and third kiln rows, where only a low drum stands in front of it. */
-export const DOME: [number, number] = [5.6, 9.95];
-/** Quarry pit, and the two diggers that work it once it is widened. */
+/** Packing house (level 8), between the second and third kiln rows. Its pad sits in the 2.2 gap between the kiln pads. */
+export const PACKING = { at: [5.0, 9.95], w: 2.4, d: 1.9 } as const;
 /** Quarry pit: its normal size, and the widened one the last upgrade gives it. */
 export const QUARRY = { normal: { at: [4.6, 5.25], w: 2.6, d: 1.3 }, wide: { at: [4.4, 5.4], w: 2.8, d: 2.0 } } as const;
-export const EXCAVATORS: [number, number][] = [
-  [4.0, 5.0],
-  [5.2, 5.9],
-];
+/** The one excavator that works the widened quarry. */
+export const EXCAVATOR: [number, number] = [4.6, 5.5];
+/** Feed hopper against the first preheater's front face, fed by a short low belt from the quarry; the elevator (level 3) rises from it. */
+export const HOPPER = { at: [1.2, 4.78], w: 0.8, d: 0.8, h: 0.7 } as const;
+export const FEED_BELT = { from: [3.5, 0.3, 5.3], to: [1.6, 0.75, 4.85] } as const;
 
 /** Taller companies get taller silos; the first upgrade only adds a little, because silos hide what is behind them. */
 export const siloHeight = (scale: number, upgraded: boolean) => 2.8 + scale * 1.6 + (upgraded ? 0.4 : 0);
@@ -85,11 +85,33 @@ export function cementSpots(): Spot[] {
     spots.push({ name: `kiln ${i} burner`, x: BURNER_X, y: 0.6, z });
   });
   spots.push({ name: 'hall end', x: HALL_X + 1.8, y: 1.1, z: HALL_Z });
-  spots.push({ name: 'clinker dome', x: DOME[0], y: 1, z: DOME[1] });
+  spots.push({ name: 'packing house far end', x: PACKING.at[0] + PACKING.w / 2, y: 1, z: PACKING.at[1] });
   for (const q of [QUARRY.normal, QUARRY.wide]) spots.push({ name: 'quarry far end', x: q.at[0] + q.w / 2, y: 0.3, z: q.at[1] });
-  EXCAVATORS.forEach(([x, z], i) => spots.push({ name: `excavator ${i}`, x, y: 0.5, z }));
-  spots.push({ name: 'feeder belt end', x: 5.4, y: 0.3, z: 5.5 });
+  spots.push({ name: 'excavator', x: EXCAVATOR[0], y: 0.5, z: EXCAVATOR[1] });
+  spots.push({ name: 'feed belt start', x: FEED_BELT.from[0], y: FEED_BELT.from[1], z: FEED_BELT.from[2] });
   return spots;
+}
+
+export interface Rect {
+  name: string;
+  minX: number;
+  maxX: number;
+  minZ: number;
+  maxZ: number;
+}
+
+const rect = (name: string, cx: number, cz: number, w: number, d: number): Rect => ({ name, minX: cx - w / 2, maxX: cx + w / 2, minZ: cz - d / 2, maxZ: cz + d / 2 });
+
+/** Ground footprints of everything that can stand on a cement site (all tiers and upgrades), for checks. */
+export function cementFootprints(): Rect[] {
+  return [
+    ...KILN_Z.map((z, i) => ({ name: `kiln line ${i}`, minX: PREHEATER_X - 0.85, maxX: BURNER_X + 0.45, minZ: z - 0.95, maxZ: z + 0.95 })),
+    rect('hall', HALL_X, HALL_Z, 3.6, 2.0),
+    rect('packing house', PACKING.at[0], PACKING.at[1], PACKING.w, PACKING.d),
+    rect('quarry (wide)', QUARRY.wide.at[0], QUARRY.wide.at[1], QUARRY.wide.w, QUARRY.wide.d),
+    rect('hopper', HOPPER.at[0], HOPPER.at[1], HOPPER.w, HOPPER.d),
+    ...BAY_Z.map((z, i) => ({ name: `silo bay ${i}`, minX: SILO_X - SILO_R, maxX: 14, minZ: z - 0.55, maxZ: z + 0.55 })),
+  ];
 }
 
 /** Every silo that can ever stand: seven bays, at their tallest. */

@@ -84,8 +84,7 @@ export function explain(c: CompanyState, forced: boolean): string[] {
   }
   const r20 = forced ? '' : ` (${pct(c.return20Pct)} over 20 days)`;
   const decline = DECLINE_LOOK[archetype][c.health];
-  const thriving = archetype === 'cement' ? ': pennants fly on the silos' : '';
-  why.push(`Health ${c.health.toLowerCase()}${r20}${decline ? `: ${decline}` : c.health === 'THRIVING' ? thriving : ''}.`);
+  why.push(`Health ${c.health.toLowerCase()}${r20}${decline ? `: ${decline}` : ''}.`);
   const project = c.expansion ? { what: 'Enlarging the site', ...c.expansion } : c.slots.find((s) => s.stage !== 'EMPTY' && s.stage !== 'COMPLETE');
   const sizeLine = `Size: level ${c.level} of 10 (most it can reach: ${c.ceiling})${c.levelTarget !== c.level ? `, working towards level ${c.levelTarget}` : ''}.`;
   if (project) {

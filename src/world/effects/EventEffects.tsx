@@ -108,7 +108,7 @@ function Fireworks({ magnitude, top, seed }: EffectProps) {
 
 /** Big drop: a warning siren on a post and dark smoke rising from the plant. */
 function Alarm({ magnitude, top, depth, smoke = true }: EffectProps & { smoke?: boolean }) {
-  const [px, pz] = cornerOffset('frontRight', depth);
+  const [px, pz] = cornerOffset('backLeft', depth);
   const lamp = useMemo(() => new MeshStandardMaterial({ color: '#ff3b2f', emissive: '#ff2a1a', emissiveIntensity: 1, flatShading: true }), []);
   const beams = useRef<Group>(null);
   const puffs = useRef<(Mesh | null)[]>([]);

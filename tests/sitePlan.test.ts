@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { LOT_SIZE } from '../src/config/layout';
 import { cornerOffset, cornerPost, POST_BASE_R } from '../src/world/effects/posts';
-import { BURNER_X, cementSilos, cementSpots, hides, KILN_Z, siloBands, siloHeight, preheaterBands, preheaterHeight } from '../src/world/buildings/sitePlan';
+import { BURNER_X, cementFootprints, cementSilos, cementSpots, hides, KILN_Z, siloBands, siloHeight, preheaterBands, preheaterHeight } from '../src/world/buildings/sitePlan';
 
 describe('cement layout: nothing low hides behind a silo', () => {
   const spots = cementSpots();
@@ -47,25 +47,40 @@ describe('size shows in the number of bands', () => {
   });
 });
 
-describe('event poles stand outside the site pad', () => {
+describe('event poles stand on the corners of the site, inside the pad', () => {
   const corners = ['frontLeft', 'frontRight', 'backLeft', 'backRight'] as const;
 
-  it.each([6, 10, 14])('at depth %d every corner pole, base included, is clear of the pad and still on the curb side of the street', (depth) => {
+  it.each([6, 10, 14])('at depth %d every corner pole, base included, is inside the pad and off the street', (depth) => {
     for (const corner of corners) {
       const [x, z] = cornerPost(corner, depth);
-      const gapX = x < LOT_SIZE / 2 ? 0 - (x + POST_BASE_R) : x - POST_BASE_R - LOT_SIZE;
-      expect(gapX, `${corner} clears the pad`).toBeGreaterThan(0.1);
-      expect(gapX, `${corner} stays beside it`).toBeLessThan(0.8);
-      expect(z).toBeGreaterThan(0);
-      expect(z).toBeLessThan(depth);
+      expect(x - POST_BASE_R, corner).toBeGreaterThan(0.05);
+      expect(x + POST_BASE_R, corner).toBeLessThan(LOT_SIZE - 0.05);
+      expect(z - POST_BASE_R, corner).toBeGreaterThan(0.05);
+      expect(z + POST_BASE_R, corner).toBeLessThan(depth - 0.05);
     }
   });
 
+  it.each([6, 10, 14])('at depth %d no cement part stands where a corner pole does', (depth) => {
+    const clash: string[] = [];
+    for (const corner of ['frontLeft', 'backRight', 'backLeft'] as const) {
+      const [x, z] = cornerPost(corner, depth);
+      for (const r of cementFootprints()) {
+        // a pole only matters where the site exists at this depth
+        if (r.minZ > depth) continue;
+        const dx = Math.max(r.minX - x, 0, x - r.maxX);
+        const dz = Math.max(r.minZ - z, 0, z - r.maxZ);
+        if (Math.hypot(dx, dz) < POST_BASE_R + 0.08) clash.push(`${corner} pole meets ${r.name}`);
+      }
+    }
+    expect(clash).toEqual([]);
+  });
+
   it('uses opposite corners for the two searchlights and a third for the siren', () => {
-    const [a, b, c] = [cornerPost('frontLeft', 10), cornerPost('backRight', 10), cornerPost('frontRight', 10)];
-    expect(Math.abs(a[0] - b[0])).toBeGreaterThan(LOT_SIZE);
-    expect(c[0]).not.toBe(a[0]);
-    expect([a, b].every(([x, z]) => x !== c[0] || z !== c[1])).toBe(true);
+    const [a, b, c] = [cornerPost('frontLeft', 10), cornerPost('backRight', 10), cornerPost('backLeft', 10)];
+    expect(Math.abs(a[0] - b[0])).toBeGreaterThan(LOT_SIZE / 2);
+    expect(Math.abs(a[1] - b[1])).toBeGreaterThan(5);
+    expect(c).not.toEqual(a);
+    expect(c).not.toEqual(b);
   });
 
   it('offsets from the site centre agree with the site coordinates', () => {
@@ -73,5 +88,31 @@ describe('event poles stand outside the site pad', () => {
     const [ox, oz] = cornerOffset('frontLeft', 10);
     expect(ox + LOT_SIZE / 2).toBeCloseTo(x, 10);
     expect(oz + 5).toBeCloseTo(z, 10);
+  });
+});
+
+describe('cement footprints', () => {
+  it('no two parts overlap', () => {
+    const rs = cementFootprints();
+    const overlaps: string[] = [];
+    for (let i = 0; i < rs.length; i++) {
+      for (let j = i + 1; j < rs.length; j++) {
+        const a = rs[i];
+        const b = rs[j];
+        // the truck strip's bays touch their own silos by design
+        if (a.name.startsWith('silo bay') && b.name.startsWith('silo bay')) continue;
+        if (a.minX < b.maxX && b.minX < a.maxX && a.minZ < b.maxZ && b.minZ < a.maxZ) overlaps.push(`${a.name} overlaps ${b.name}`);
+      }
+    }
+    expect(overlaps).toEqual([]);
+  });
+
+  it('keeps everything but the truck strip at least 0.8 inside the pad edge', () => {
+    for (const r of cementFootprints()) {
+      if (r.name.startsWith('silo bay')) continue;
+      expect(r.minX, r.name).toBeGreaterThanOrEqual(0.15);
+      expect(r.minZ, r.name).toBeGreaterThanOrEqual(0.15);
+      expect(r.maxX, r.name).toBeLessThanOrEqual(LOT_SIZE - 0.8);
+    }
   });
 });
