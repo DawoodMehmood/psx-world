@@ -93,7 +93,7 @@ export function CompanyPlot({ company, index }: { company: CompanyDefinition; in
           <group position={[0, 0.18, 0]}>
             {buildings}
             <group position={[LOT_SIZE / 2, 0, depth / 2]}>
-              <EventEffects events={events} top={top} accent={company.accent} size={Math.min(depth, LOT_SIZE)} archetype={company.archetype} />
+              <EventEffects events={events} top={top} accent={company.accent} depth={depth} archetype={company.archetype} />
               {visual.halted && <HaltTape w={LOT_SIZE} d={depth} />}
             </group>
           </group>

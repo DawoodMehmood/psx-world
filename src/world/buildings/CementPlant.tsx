@@ -1,6 +1,7 @@
 import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { MeshStandardMaterial, Quaternion, Vector3, type Group, type Mesh } from 'three';
+import { MeshStandardMaterial, Vector3, type Group, type Mesh } from 'three';
+import { beltBasis } from '../belt';
 import { SITE_TIERS } from '../../config/companies';
 import { HEALTH, type SlotState } from '../../engine/types';
 import { MixerTruck, Workers, type Lane } from '../agents';
@@ -10,6 +11,7 @@ import { agentCount, useMotion } from '../motion';
 import { BAY_Z, BayLines, BayVehicles, BUILD_W, ClosedBay,  DOCK_X, isBuilt, openBays, runningCount, Slots, Weeds, type SlotDesign } from './shared';
 import { crewMax } from '../../engine/visual';
 import { UpgradeSite } from '../construction/UpgradeSite';
+import { BURNER_X, DOME, EXCAVATORS, HALL_X, HALL_Z, KILN_CX, KILN_LEN, KILN_Z, PREHEATER_X, preheaterBands, preheaterHeight, QUARRY, SILO_R, SILO_X, siloBands, siloHeight } from './sitePlan';
 import type { ArchetypeProps } from './types';
 
 /*
@@ -31,15 +33,6 @@ const TALL_KILNS = 1;
 const WIDE_YARD = 2;
 const done = (p: Pick<ArchetypeProps, 'upgrades'>, i: number) => p.upgrades[i]?.stage === 'COMPLETE';
 
-const SILO_X = 10.6;
-const SILO_R = 0.6;
-const KILN_Z = [3.4, 7.9, 12.0];
-const PREHEATER_X = 1.1;
-const KILN_LEN = 4.6;
-/** Drum center: from just in front of the preheater, running toward +x. */
-const KILN_CX = 2.3 + KILN_LEN / 2;
-/** Between the second and third kiln rows, where only a low drum stands in front of it. */
-const DOME: [number, number] = [5.6, 9.95];
 
 /** Which bays exist: 0 and 1 from the start, then each loading slot adds its own. */
 function builtBays(slots: SlotState[]): number[] {
@@ -149,13 +142,13 @@ export function CementPlant(props: ArchetypeProps) {
       <KilnLine line={0} {...props} />
       <Quarry wide={wide} />
       <Conveyor from={[3.6, 0.3, 5.2]} to={[1.9, 2.6, 4.0]} />
-      {done(props, RAISED_SILOS) && <Conveyor from={[6.4, 0.3, 5.5]} to={[3.7, 0.3, 5.2]} />}
+      {done(props, RAISED_SILOS) && <Conveyor from={[5.4, 0.3, 5.5]} to={[3.7, 0.3, 5.2]} />}
       {wide && <Excavators />}
 
-      {/* upgrades being fitted: scaffolding round the silos, the first preheater and the quarry (the hall's extension stands behind the tall parts, so the scaffold goes where the work shows) */}
-      <UpgradeSite state={upgrades[RAISED_SILOS]} at={[SILO_X, 2.2]} w={1.9} d={3.6} h={4.2} />
-      <UpgradeSite state={upgrades[TALL_KILNS]} at={[PREHEATER_X, KILN_Z[0]]} w={2.2} d={2.2} h={4.6} />
-      <UpgradeSite state={upgrades[WIDE_YARD]} at={[5.6, 5.3]} w={4.8} d={1.9} h={1.5} />
+      {/* upgrades being fitted: scaffolding round the silos, the first preheater and the quarry (the hall's second storey is part of the same last upgrade, but the scaffold goes where the work shows) */}
+      <UpgradeSite state={upgrades[RAISED_SILOS]} at={[SILO_X, 2.2]} w={1.9} d={3.6} h={siloHeight(props.scale, false) - 0.2} />
+      <UpgradeSite state={upgrades[TALL_KILNS]} at={[PREHEATER_X, KILN_Z[0]]} w={2.2} d={2.2} h={preheaterHeight(props.scale, false) - 0.3} />
+      <UpgradeSite state={upgrades[WIDE_YARD]} at={QUARRY.wide.at as unknown as [number, number]} w={3.2} d={2.4} h={1.5} />
 
       {/* the original two silos and bays */}
       {[0, 1].map((i) => (
@@ -194,11 +187,12 @@ function Hall({ h, extended }: { h: number; extended: boolean }) {
     </>
   );
   return (
-    <group position={[4.8, 0, 1.2]}>
+    <group position={[HALL_X, 0, HALL_Z]}>
       <Static>
       <Box size={[3.6, 2.2, 2.0]} color="#efe7d6" rounded={0.08} />
-      {/* ridge along the hall's length */}
-      <group position={[0, 2.2, 0]} rotation={[0, Math.PI / 2, 0]}>
+      {/* ridge along the hall's length; the last upgrade adds a second storey under it */}
+      {extended && <Box size={[3.4, 1.1, 1.8]} at={[0, 2.2, 0]} color="#efe7d6" rounded={0.08} />}
+      <group position={[0, extended ? 3.3 : 2.2, 0]} rotation={[0, Math.PI / 2, 0]}>
         <Roof w={2.2} d={3.8} h={0.8} color="#9b9284" />
       </group>
       {/* door and windows on the faces the camera sees */}
@@ -211,20 +205,12 @@ function Hall({ h, extended }: { h: number; extended: boolean }) {
           {windows}
         </group>
       ))}
-      {/* the hall's extension (the last upgrade): another bay of the same hall with its own roof ridge and windows */}
-      {extended && (
-        <>
-          <Box size={[2.2, 2.2, 2.0]} at={[2.9, 0, 0]} color="#efe7d6" rounded={0.08} />
-          <group position={[2.9, 2.2, 0]} rotation={[0, Math.PI / 2, 0]}>
-            <Roof w={2.2} d={2.4} h={0.8} color="#9b9284" />
+      {extended &&
+        [-1.1, 0, 1.1].map((x) => (
+          <group key={x} position={[x, 2.75, 0.91]}>
+            {windows}
           </group>
-          {[2.3, 3.5].map((x) => (
-            <group key={x} position={[x, 1.5, 1.01]}>
-              {windows}
-            </group>
-          ))}
-        </>
-      )}
+        ))}
       </Static>
     </group>
   );
@@ -239,16 +225,20 @@ function SiloBay({ bay, scale, accent, health, slots, upgrades }: ArchetypeProps
   const h = HEALTH.indexOf(health);
   const z = BAY_Z[bay];
   const closed = !openBays(h, builtBays(slots)).includes(bay);
-  // the first upgrade raises every silo and rings it with a walkway
+  // the first upgrade lifts every silo a little and rings it with a walkway; silos hide what is behind them, so not by much
   const raised = done({ upgrades }, RAISED_SILOS);
-  const siloH = 3 + scale * 1.5 + (raised ? 1.2 : 0);
+  const siloH = siloHeight(scale, raised);
+  const bands = siloBands(scale);
   const spoutY = 1.75;
   const armFrom = SILO_X + SILO_R - 0.1;
   const armTo = DOCK_X - 0.1;
   return (
     <Static>
       <Cyl r={SILO_R} h={siloH} at={[SILO_X, 0, z]} color="#e6e1d6" />
-      <Cyl r={SILO_R + 0.02} h={0.2} at={[SILO_X, siloH * 0.78, z]} color={h <= 0 ? '#9a948a' : accent} />
+      {/* a band for each step of company size, so a big company's silos read as bigger at a glance */}
+      {Array.from({ length: bands }, (_, i) => (
+        <Cyl key={i} r={SILO_R + 0.02} h={0.13} at={[SILO_X, siloH * (0.16 + (0.74 * i) / Math.max(1, bands - 1)), z]} color={h <= 0 ? '#9a948a' : accent} />
+      ))}
       <Cone r={SILO_R} h={0.4} at={[SILO_X, siloH, z]} color="#cfc8ba" />
       {raised && <Cyl r={SILO_R + 0.14} h={0.07} at={[SILO_X, siloH - 0.55, z]} color="#8a8174" />}
       {/* spout arm reaching over the bay */}
@@ -291,18 +281,18 @@ function LoadingWing({ bays, ...p }: ArchetypeProps & { bays: number[] }) {
  */
 function KilnLine({ line, scale, accent, health, slots, upgrades, bare = false }: ArchetypeProps & { line: number; bare?: boolean }) {
   const tall = !bare && done({ upgrades }, TALL_KILNS);
-  const towerH = 4 + scale * 1.5 + (tall ? 0.9 : 0);
+  const towerH = preheaterHeight(scale, tall);
   const y = 1.15;
   const z = KILN_Z[line];
   const mothballed = !bare && line >= runningCount(HEALTH.indexOf(health), builtKilns(slots));
-  const burnerX = KILN_CX + KILN_LEN / 2 + 0.45;
+  const burnerX = BURNER_X;
   return (
     <group>
       <group position={[KILN_CX, 0, z]}>
         <Kiln at={[0, y, 0]} length={KILN_LEN} r={0.5} piers={[-1.6, 0, 1.6]} color={bare ? '#c9c2b6' : accent} bare={bare} wrapped={mothballed} />
         {!bare && <KilnGlow at={[KILN_LEN / 2 + 0.25, y - 0.55, 0]} cold={mothballed} />}
       </group>
-      <Preheater z={z} h={bare ? towerH * 0.45 : towerH} accent={accent} stack={!bare} smoke={!bare && !mothballed} tall={tall} />
+      <Preheater z={z} h={bare ? towerH * 0.45 : towerH} accent={accent} stack={!bare} smoke={!bare && !mothballed} tall={tall} bands={preheaterBands(scale)} />
       {mothballed && (
         // chained shut: a rope with a padlock board across the front of the line
         <group position={[burnerX + 0.35, 0, z]} rotation={[0, Math.PI / 2, 0]}>
@@ -320,15 +310,16 @@ function KilnLine({ line, scale, accent, health, slots, upgrades, bare = false }
   );
 }
 
-function Preheater({ z, h, accent, stack, smoke, tall = false }: { z: number; h: number; accent: string; stack: boolean; smoke: boolean; tall?: boolean }) {
+function Preheater({ z, h, accent, stack, smoke, bands, tall = false }: { z: number; h: number; accent: string; stack: boolean; smoke: boolean; bands: number; tall?: boolean }) {
   const x = PREHEATER_X;
   const stackH = tall ? 2.2 : 1.4;
   return (
     <group>
       <Static>
         <Box size={[1.7, h, 1.7]} at={[x, 0, z]} color="#d8d0c0" rounded={0.08} />
-        {[0.3, 0.55, 0.8].map((f) => (
-          <Box key={f} size={[1.85, 0.16, 1.85]} at={[x, h * f, z]} color="#8a8174" />
+        {/* one band per step of company size */}
+        {Array.from({ length: bands }, (_, i) => (
+          <Box key={i} size={[1.85, 0.14, 1.85]} at={[x, h * (0.14 + (0.76 * i) / Math.max(1, bands - 1)), z]} color="#8a8174" />
         ))}
         {stack && (
           <>
@@ -415,17 +406,18 @@ function ClinkerDome() {
   );
 }
 
-/** The quarry pit at the front of the first row, where the conveyor starts. The last upgrade widens it. */
+/** The quarry pit at the front of the first row, where the conveyor starts. The last upgrade widens it toward the camera. */
 function Quarry({ wide = false }: { wide?: boolean }) {
+  const q = wide ? QUARRY.wide : QUARRY.normal;
   const rocks: Vec3[] = [
     [4.2, 5.3, 0.42],
     [5.1, 5.0, 0.35],
-    [5.6, 5.5, 0.3],
-    ...(wide ? ([[6.4, 5.4, 0.38], [6.9, 5.0, 0.3], [7.3, 5.6, 0.34]] as Vec3[]) : []),
+    [5.4, 5.5, 0.3],
+    ...(wide ? ([[3.5, 5.9, 0.34], [4.6, 6.1, 0.3], [5.3, 6.0, 0.32]] as Vec3[]) : []),
   ];
   return (
     <Static>
-      <Box size={wide ? [4.6, 0.06, 1.5] : [2.6, 0.06, 1.3]} at={wide ? [5.6, 0, 5.3] : [4.6, 0, 5.25]} color="#9c8466" shadow={false} />
+      <Box size={[q.w, 0.06, q.d]} at={[q.at[0], 0, q.at[1]]} color="#9c8466" shadow={false} />
       {rocks.map(([x, z, r]) => (
         <mesh key={x + z} geometry={GEO.blob} material={mat('#b49a78')} position={[x, r * 0.6, z]} scale={[r * 1.3, r, r * 1.2]} castShadow />
       ))}
@@ -437,8 +429,8 @@ function Quarry({ wide = false }: { wide?: boolean }) {
 function Excavators() {
   return (
     <>
-      <Excavator at={[6.6, 0.03, 4.9]} phase={0} />
-      <Excavator at={[7.5, 0.03, 5.6]} phase={2.1} />
+      <Excavator at={[EXCAVATORS[0][0], 0.03, EXCAVATORS[0][1]]} phase={0} />
+      <Excavator at={[EXCAVATORS[1][0], 0.03, EXCAVATORS[1][1]]} phase={2.1} />
     </>
   );
 }
@@ -468,8 +460,6 @@ function Excavator({ at, phase }: { at: Vec3; phase: number }) {
   );
 }
 
-const ALONG = new Vector3(1, 0, 0);
-
 /** Belt from the quarry up to the first preheater, with rock chunks riding it; more of them, faster, when busy. */
 function Conveyor({ from, to }: { from: Vec3; to: Vec3 }) {
   const motion = useMotion();
@@ -477,11 +467,10 @@ function Conveyor({ from, to }: { from: Vec3; to: Vec3 }) {
   const { mid, len, q, legs } = useMemo(() => {
     const a = new Vector3(...from);
     const b = new Vector3(...to);
-    const dir = b.clone().sub(a);
     return {
       mid: a.clone().add(b).multiplyScalar(0.5),
-      len: dir.length(),
-      q: new Quaternion().setFromUnitVectors(ALONG, dir.normalize()),
+      len: b.clone().sub(a).length(),
+      q: beltBasis(a, b),
       legs: [0.3, 0.7].map((f) => a.clone().lerp(b, f)),
     };
   }, [from, to]);

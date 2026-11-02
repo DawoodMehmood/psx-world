@@ -7,6 +7,7 @@ import { CREW, movingVehicles, openBayCount, runningCount } from '../../engine/v
 import { ConstructionSlot } from '../construction/ConstructionSlot';
 import { Box, Cone, Cyl, GEO, mat, type Vec3 } from '../kit';
 import { useMotion } from '../motion';
+import { BAY_Z, BUILD_W, DOCK_X, STREET_X, TIER_BAYS } from './sitePlan';
 import type { ArchetypeProps } from './types';
 
 /*
@@ -27,15 +28,7 @@ import type { ArchetypeProps } from './types';
  * always appear in front of old ones.
  */
 
-/** Width of the build area; beyond it is the vehicle strip along the side street. */
-export const BUILD_W = 11.4;
-/** Where a vehicle stops in its bay, and where it leaves the lot on the side street. */
-export const DOCK_X = 12.7;
-export const STREET_X = 15.9;
-/** Bay rows along the vehicle strip: three in tier 1's rows, two more in each later tier. */
-export const BAY_Z = [1.4, 3.0, 4.6, 7.2, 8.8, 11.4, 13.0];
-/** Bays each tier has. */
-export const TIER_BAYS = [3, 5, 7];
+export { BAY_Z, BUILD_W, DOCK_X, STREET_X, TIER_BAYS };
 
 // ── expansion slots ──────────────────────────────────────────────────────────
 

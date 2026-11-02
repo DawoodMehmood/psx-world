@@ -4,25 +4,14 @@ import { computeSize, type CompanySize } from '../engine/size';
 import { generateCapHistory, type CapSeed } from './history';
 
 /**
- * Simulation inputs for size. `cap` is each company's real market cap on
- * 30 Oct 2026 (dps.psx.com.pk, Rs billions). `cycle` is invented: it says how
+ * Simulation inputs for size. `cap` is each company's market cap (see
+ * companies.ts). `cycle` is invented: it says how
  * far through its own 5-year range the company stands, spread from a company
  * near its high to one near its low so every part of the ladder gets used.
  */
-export const CAP_SEEDS: Record<string, CapSeed> = {
-  MEBL: { cap: 955, cycle: 0.85 },
-  HBL: { cap: 428, cycle: 0.55 },
-  UBL: { cap: 1026, cycle: 0.9 },
-  OGDC: { cap: 1319, cycle: 0.7 },
-  PPL: { cap: 582, cycle: 0.4 },
-  MARI: { cap: 758, cycle: 0.8 },
-  LUCK: { cap: 573, cycle: 0.65 },
-  DGKC: { cap: 78, cycle: 0.3 },
-  FCCL: { cap: 128, cycle: 0.5 },
-  SYS: { cap: 167, cycle: 0.35 },
-  TRG: { cap: 28, cycle: 0.2 },
-  AVN: { cap: 10.4, cycle: 0.1 },
-};
+const CYCLES: Record<string, number> = { MEBL: 0.85, HBL: 0.55, UBL: 0.9, OGDC: 0.7, PPL: 0.4, MARI: 0.8, LUCK: 0.65, DGKC: 0.3, FCCL: 0.5, SYS: 0.35, TRG: 0.2, AVN: 0.1 };
+
+export const CAP_SEEDS: Record<string, CapSeed> = Object.fromEntries(COMPANIES.map((c) => [c.ticker, { cap: c.marketCap, cycle: CYCLES[c.ticker] }]));
 
 /** Each company's size, from its generated cap history. */
 export function simulatedSizes(): Record<string, CompanySize> {

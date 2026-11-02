@@ -22,7 +22,7 @@ export function archetypeHeight(archetype: Archetype, scale: number): number {
     case 'oil':
       return 6.5 + scale * 2.5;
     case 'cement':
-      return 6.2 + scale * 1.5;
+      return 7 + scale * 2.2;
     case 'tech':
       return Math.round(4 + scale * 6) * 0.9 + 2.5;
   }

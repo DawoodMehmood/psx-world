@@ -4,11 +4,13 @@ import { AdditiveBlending, Color, CylinderGeometry, MeshBasicMaterial, MeshStand
 import type { Archetype } from '../../config/companies';
 import { createRng } from '../../engine/rng';
 import type { EventType, MarketEvent } from '../../engine/types';
+import { LOT_SIZE } from '../../config/layout';
 import { Ball, Box, Cyl, GEO, mat } from '../kit';
 import { useMotion } from '../motion';
+import { cornerOffset, POST_BASE_R } from './posts';
 
 /** Effects are placed in coordinates centered on the site; `size` is the site's side. */
-type EffectProps = { magnitude: number; top: number; accent: string; seed: number; size: number };
+type EffectProps = { magnitude: number; top: number; accent: string; seed: number; size: number; depth: number };
 
 const EFFECTS: Partial<Record<EventType, (p: EffectProps) => React.JSX.Element>> = {
   BIG_UP: Fireworks,
@@ -33,12 +35,13 @@ const SECTOR_EFFECTS: Partial<Record<Archetype, Partial<Record<EventType, (p: Ef
  * mounted while its event is active and sized by the event's magnitude.
  * HALT has no entry here: the plot draws barrier tape and freezes instead.
  */
-export function EventEffects({ events, top, accent, size, archetype }: { events: MarketEvent[]; top: number; accent: string; size: number; archetype?: Archetype }) {
+export function EventEffects({ events, top, accent, depth, archetype }: { events: MarketEvent[]; top: number; accent: string; depth: number; archetype?: Archetype }) {
+  const size = Math.min(depth, LOT_SIZE);
   return (
     <>
       {events.map((e) => {
         const Effect = (archetype && SECTOR_EFFECTS[archetype]?.[e.type]) || EFFECTS[e.type];
-        return Effect ? <Effect key={e.id} magnitude={e.magnitude} top={top} accent={accent} seed={e.startIndex} size={size} /> : null;
+        return Effect ? <Effect key={e.id} magnitude={e.magnitude} top={top} accent={accent} seed={e.startIndex} size={size} depth={depth} /> : null;
       })}
     </>
   );
@@ -104,8 +107,8 @@ function Fireworks({ magnitude, top, seed }: EffectProps) {
 }
 
 /** Big drop: a warning siren on a post and dark smoke rising from the plant. */
-function Alarm({ magnitude, top, size, smoke = true }: EffectProps & { smoke?: boolean }) {
-  const edge = size / 2 - 0.6;
+function Alarm({ magnitude, top, depth, smoke = true }: EffectProps & { smoke?: boolean }) {
+  const [px, pz] = cornerOffset('frontRight', depth);
   const lamp = useMemo(() => new MeshStandardMaterial({ color: '#ff3b2f', emissive: '#ff2a1a', emissiveIntensity: 1, flatShading: true }), []);
   const beams = useRef<Group>(null);
   const puffs = useRef<(Mesh | null)[]>([]);
@@ -123,7 +126,7 @@ function Alarm({ magnitude, top, size, smoke = true }: EffectProps & { smoke?: b
   });
   return (
     <>
-      <group position={[-edge, 0, edge]}>
+      <group position={[px, 0, pz]}>
         <Cyl r={0.06} h={2.2} color="#7a7a7a" low />
         <Box size={[0.4, 0.14, 0.4]} at={[0, 2.2, 0]} color="#3a3a3a" />
         <mesh geometry={GEO.ball} material={lamp} position={[0, 2.5, 0]} scale={0.22} />
@@ -148,9 +151,8 @@ function Alarm({ magnitude, top, size, smoke = true }: EffectProps & { smoke?: b
   );
 }
 
-/** Volume spike: two searchlights sweeping the sky from the plot's corners. */
-function Spotlights({ magnitude, size }: EffectProps) {
-  const edge = size / 2 - 0.6;
+/** Volume spike: two searchlights sweeping the sky from poles just outside the site's opposite corners. */
+function Spotlights({ magnitude, depth }: EffectProps) {
   const geo = useMemo(() => new CylinderGeometry(1.1, 0.1, 9, 18, 1, true).translate(0, 4.5, 0), []);
   const material = useMemo(
     () => new MeshBasicMaterial({ color: '#fff3a8', transparent: true, opacity: 0.18 + magnitude * 0.15, blending: AdditiveBlending, depthWrite: false, toneMapped: false }),
@@ -166,11 +168,11 @@ function Spotlights({ magnitude, size }: EffectProps) {
   return (
     <>
       {[
-        { ref: a, at: [-edge, 0, edge] as const },
-        { ref: b, at: [edge, 0, -edge] as const },
+        { ref: a, at: cornerOffset('frontLeft', depth) },
+        { ref: b, at: cornerOffset('backRight', depth) },
       ].map(({ ref, at }, i) => (
-        <group key={i} position={[at[0], 0, at[2]]}>
-          <Cyl r={0.3} h={0.4} color="#3a3a3a" />
+        <group key={i} position={[at[0], 0, at[1]]}>
+          <Cyl r={POST_BASE_R} h={0.4} color="#3a3a3a" />
           <group ref={ref} position={[0, 0.4, 0]}>
             <mesh geometry={geo} material={material} />
           </group>

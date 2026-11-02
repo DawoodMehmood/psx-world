@@ -1,3 +1,4 @@
+import { logPosition } from '../engine/size';
 import { SECTOR_BY_ID, type SectorId } from './sectors';
 
 export type Archetype = 'bank' | 'oil' | 'cement' | 'tech';
@@ -6,7 +7,9 @@ export interface CompanyDefinition {
   ticker: string;
   name: string;
   sectorId: SectorId;
-  /** Relative size within the city, 0–1. Drives building height and prop count, never price. */
+  /** Market cap in Rs billions on 30 Oct 2026 (dps.psx.com.pk). Simulation seed; live data replaces it. */
+  marketCap: number;
+  /** Relative size within its sector, 0–1, from market cap on a log scale. Drives tower height, band count and prop count, never price. */
   scale: number;
   accent: string;
   archetype: Archetype;
@@ -16,23 +19,31 @@ export interface CompanyDefinition {
   sharesOutstanding: number;
 }
 
-export const COMPANIES: CompanyDefinition[] = [
-  { ticker: 'MEBL', name: 'Meezan Bank', sectorId: 'banks', scale: 0.9, accent: '#2f8f5b', archetype: 'bank', plot: 0, sharesOutstanding: 1807096448 },
-  { ticker: 'HBL', name: 'Habib Bank', sectorId: 'banks', scale: 0.8, accent: '#1f8a7a', archetype: 'bank', plot: 1, sharesOutstanding: 1466852508 },
-  { ticker: 'UBL', name: 'United Bank', sectorId: 'banks', scale: 0.65, accent: '#2c5fb8', archetype: 'bank', plot: 2, sharesOutstanding: 2504247750 },
+type RawCompany = Omit<CompanyDefinition, 'scale'>;
 
-  { ticker: 'OGDC', name: 'Oil and Gas Development Co.', sectorId: 'oil', scale: 0.95, accent: '#e0682b', archetype: 'oil', plot: 0, sharesOutstanding: 4300928400 },
-  { ticker: 'PPL', name: 'Pakistan Petroleum', sectorId: 'oil', scale: 0.7, accent: '#d23f3f', archetype: 'oil', plot: 1, sharesOutstanding: 2720967548 },
-  { ticker: 'MARI', name: 'Mari Energies', sectorId: 'oil', scale: 0.75, accent: '#e6a92e', archetype: 'oil', plot: 2, sharesOutstanding: 1200622500 },
+const RAW_COMPANIES: RawCompany[] = [
+  { ticker: 'MEBL', name: 'Meezan Bank', sectorId: 'banks', marketCap: 955, accent: '#2f8f5b', archetype: 'bank', plot: 0, sharesOutstanding: 1807096448 },
+  { ticker: 'HBL', name: 'Habib Bank', sectorId: 'banks', marketCap: 428, accent: '#1f8a7a', archetype: 'bank', plot: 1, sharesOutstanding: 1466852508 },
+  { ticker: 'UBL', name: 'United Bank', sectorId: 'banks', marketCap: 1026, accent: '#2c5fb8', archetype: 'bank', plot: 2, sharesOutstanding: 2504247750 },
 
-  { ticker: 'LUCK', name: 'Lucky Cement', sectorId: 'cement', scale: 0.9, accent: '#d94b3d', archetype: 'cement', plot: 0, sharesOutstanding: 1465000000 },
-  { ticker: 'DGKC', name: 'D.G. Khan Cement', sectorId: 'cement', scale: 0.5, accent: '#3d7fd9', archetype: 'cement', plot: 1, sharesOutstanding: 438119097 },
-  { ticker: 'FCCL', name: 'Fauji Cement', sectorId: 'cement', scale: 0.55, accent: '#4f9a3f', archetype: 'cement', plot: 2, sharesOutstanding: 2452847220 },
+  { ticker: 'OGDC', name: 'Oil and Gas Development Co.', sectorId: 'oil', marketCap: 1319, accent: '#e0682b', archetype: 'oil', plot: 0, sharesOutstanding: 4300928400 },
+  { ticker: 'PPL', name: 'Pakistan Petroleum', sectorId: 'oil', marketCap: 582, accent: '#d23f3f', archetype: 'oil', plot: 1, sharesOutstanding: 2720967548 },
+  { ticker: 'MARI', name: 'Mari Energies', sectorId: 'oil', marketCap: 758, accent: '#e6a92e', archetype: 'oil', plot: 2, sharesOutstanding: 1200622500 },
 
-  { ticker: 'SYS', name: 'Systems Limited', sectorId: 'tech', scale: 0.85, accent: '#6a4fd8', archetype: 'tech', plot: 0, sharesOutstanding: 1530982855 },
-  { ticker: 'TRG', name: 'TRG Pakistan', sectorId: 'tech', scale: 0.6, accent: '#e0508f', archetype: 'tech', plot: 1, sharesOutstanding: 545390665 },
-  { ticker: 'AVN', name: 'Avanceon', sectorId: 'tech', scale: 0.4, accent: '#24a7c9', archetype: 'tech', plot: 2, sharesOutstanding: 429667346 },
+  { ticker: 'LUCK', name: 'Lucky Cement', sectorId: 'cement', marketCap: 573, accent: '#d94b3d', archetype: 'cement', plot: 0, sharesOutstanding: 1465000000 },
+  { ticker: 'DGKC', name: 'D.G. Khan Cement', sectorId: 'cement', marketCap: 78, accent: '#3d7fd9', archetype: 'cement', plot: 1, sharesOutstanding: 438119097 },
+  { ticker: 'FCCL', name: 'Fauji Cement', sectorId: 'cement', marketCap: 128, accent: '#4f9a3f', archetype: 'cement', plot: 2, sharesOutstanding: 2452847220 },
+
+  { ticker: 'SYS', name: 'Systems Limited', sectorId: 'tech', marketCap: 167, accent: '#6a4fd8', archetype: 'tech', plot: 0, sharesOutstanding: 1530982855 },
+  { ticker: 'TRG', name: 'TRG Pakistan', sectorId: 'tech', marketCap: 28, accent: '#e0508f', archetype: 'tech', plot: 1, sharesOutstanding: 545390665 },
+  { ticker: 'AVN', name: 'Avanceon', sectorId: 'tech', marketCap: 10.4, accent: '#24a7c9', archetype: 'tech', plot: 2, sharesOutstanding: 429667346 },
 ];
+
+/** Scale is each company's place in its sector's cap range, so UBL (Rs 1,026B) reads bigger than MEBL (Rs 955B), and TRG far smaller than a placeholder would have said. */
+export const COMPANIES: CompanyDefinition[] = RAW_COMPANIES.map((c) => {
+  const { low, high } = SECTOR_BY_ID[c.sectorId].capRange;
+  return { ...c, scale: Math.round(logPosition(c.marketCap, low, high) * 100) / 100 };
+});
 
 export const COMPANY_BY_TICKER = Object.fromEntries(COMPANIES.map((c) => [c.ticker, c])) as Record<string, CompanyDefinition>;
 

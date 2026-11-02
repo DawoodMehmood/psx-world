@@ -348,6 +348,15 @@ Each step ends with tests and a build.
 - **Visibility caveat:** the hall extension stands behind the tall preheaters, so it hardly shows from the fixed camera; the level-10 scaffold goes on the quarry, where the work is visible. Worth checking on the live site and moving if it reads badly.
 - Still open: banks, oil and tech upgrades and hard-move effects, and deriving `scale` from size.
 
+### Step 5, cement review fixes (built)
+
+- **Conveyor:** the quarry belt ran backwards and uphill and came out upside down (rocks riding underneath). `world/belt.ts` now builds its orientation with the top kept up, with a test.
+- **Silos must not hide the kilns.** `world/buildings/sitePlan.ts` holds the site geometry as plain numbers plus the height rule (`hides`), and `tests/sitePlan.test.ts` checks that no kiln drum, burner hood, hall end, dome, quarry or excavator sits in a silo's line of sight, for the tallest and the smallest company. The test first reproduced the problem (burners hidden behind the silo bays). Fix: kilns are shorter (3.0 instead of 4.6), the hall sits further left, the quarry widens toward the camera instead of toward the silos, and the first upgrade lifts silos by only 0.4. The same check should be written for each sector before its art is added.
+- **Size shows in bands.** Silos and preheaters carry one more band for each step of company size (`siloBands`, `preheaterBands`), and their heights follow `scale` more strongly.
+- **`scale` now comes from market cap** (its place in the sector's cap range, log scale) instead of a typed placeholder, so UBL reads bigger than MEBL and TRG far smaller. `marketCap` (Rs billions, 30 Oct 2026) is in `companies.ts`.
+- **Event poles** (the two searchlights and the crash siren) stand just outside the site pad at its corners (`world/effects/posts.ts`), so nothing on any site can be in their way; before, they were placed from the effect's own size, which for a shallow site landed in the middle of the plot.
+- **Last upgrade:** the hall gains a second storey instead of a longer wing (it stays out of the silos' line of sight).
+
 ## 12. Items to tune by eye, and open questions
 
 Starting numbers to tune: all band thresholds, weights (0.7/0.3 ceiling; 0.35/0.25/0.40 health; 0.7/0.3 activity), the 60-day and 5-year windows, build durations, hysteresis margins, the level at which footprint steps.
