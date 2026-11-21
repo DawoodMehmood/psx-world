@@ -19,6 +19,7 @@ const nice = (level: string) => level.charAt(0) + level.slice(1).toLowerCase().r
 export function InfoPanel() {
   const ticker = useWorldStore((s) => s.selectedTicker);
   const select = useWorldStore((s) => s.select);
+  const lab = useWorldStore((s) => s.showLab);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && select(null);
@@ -26,7 +27,8 @@ export function InfoPanel() {
     return () => window.removeEventListener('keydown', onKey);
   }, [select]);
 
-  if (!ticker) return null;
+  // the lab takes this card's place while it is open
+  if (!ticker || lab) return null;
   return <CompanyCard ticker={ticker} onClose={() => select(null)} />;
 }
 
@@ -135,6 +137,10 @@ function ForceState({ ticker, override }: { ticker: string; override?: Override 
   };
   return (
     <div className="force">
+      <button className="link" onClick={() => useWorldStore.getState().setShowLab(true)}>
+        Open the lab (B): every level, stage and effect
+      </button>
+      <br />
       <button className="link" onClick={() => setOpen(!open)}>
         {open ? '▾' : '▸'} Force state (demo)
       </button>

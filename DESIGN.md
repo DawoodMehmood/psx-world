@@ -385,6 +385,10 @@ Each step ends with tests and a build.
 - **Tech:** level 3 = HQ +2 floors and a taller mast; level 6 = relay nodes on the network line and turning cooling fans on every data center roof; level 10 = glass bridge HQ to office block and a lit crown ring on the HQ roof. Hard moves: a drone light show up; sirens, a rain cloud and part of the windows going dark (`motion.blackout`) down. The network line's pulses are now evenly spaced like cement's belt.
 - Not yet checked by eye: how the sky bridges, planters and bridge/crown details read at the normal zoom; the demo scenarios never take oil or tech to level 10, so I forced that state to look at it.
 
+### The lab (built)
+
+Press **B** (or "Open the lab" on a company card) to force any state on the selected company without touching the simulation: any level 1–10, building the next level or winding the current one down at any progress, any health, activity, direction or volatility, halted, and any event switched on until you switch it off. The ◀ ▶ arrows step through all 82 states of the ladder in order (each level finished, then every stage going up, then every stage winding down). It pauses simulation time and sits where the company card does, so it fits phones like the card does. Pure logic is in `engine/lab.ts` (`labTour`, `labSite`, `applyOverride`) with tests. Not built: the camera does not fly to the company yet, so zoom to it yourself.
+
 ## 12. Items to tune by eye, and open questions
 
 Starting numbers to tune: all band thresholds, weights (0.7/0.3 ceiling; 0.35/0.25/0.40 health; 0.7/0.3 activity), the 60-day and 5-year windows, build durations, hysteresis margins, the level at which footprint steps.

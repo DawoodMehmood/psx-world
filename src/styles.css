@@ -265,6 +265,94 @@ body {
   font: 500 12px 'Fredoka', system-ui, sans-serif;
 }
 
+.lab {
+  top: 76px;
+  right: 16px;
+  width: 300px;
+  max-height: calc(100% - 200px);
+  overflow-y: auto;
+  font-size: 12px;
+}
+
+.lab h2 {
+  margin: 0 0 2px;
+  font-size: 17px;
+}
+
+.lab h3 {
+  margin: 10px 0 4px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--ink-soft);
+}
+
+.lab .close {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  border: none;
+  background: none;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--ink-soft);
+}
+
+.lab-note {
+  margin: 2px 0 4px;
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.lab-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.lab-row select,
+.lab-row input[type='range'] {
+  font: 500 12px 'Fredoka', system-ui, sans-serif;
+  max-width: 62%;
+}
+
+.lab-tour {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lab-tour span {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.lab-tour button,
+.lab-chips button {
+  border: 2px solid var(--edge);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink);
+  font: 600 11px 'Fredoka', system-ui, sans-serif;
+  padding: 2px 9px;
+  cursor: pointer;
+}
+
+.lab-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 8px;
+}
+
+.lab-chips button.on {
+  background: #ffd23f;
+}
+
 .override-banner {
   position: absolute;
   top: 60px;
@@ -727,7 +815,8 @@ body {
     max-width: calc(100% - 24px);
     white-space: normal;
   }
-  .info {
+  .info,
+  .lab {
     top: auto;
     left: 12px;
     right: 12px;

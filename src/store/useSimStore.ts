@@ -3,13 +3,13 @@ import { create } from 'zustand';
 import { useShallow } from 'zustand/react/shallow';
 import type { CompanyState, Snapshot } from '../engine/types';
 import { TICKS_PER_DAY } from '../engine/types';
+import { applyOverride, type Override } from '../engine/lab';
 import { companyVisual } from '../engine/visual';
 import { simulate } from '../sim/run';
 import { SCENARIOS } from '../sim/scenarios';
 import type { Scenario } from '../sim/types';
 
-/** Demo override: force some of a company's levels to test visuals. */
-export type Override = Partial<Pick<CompanyState, 'health' | 'direction' | 'activity' | 'volatility' | 'halted'>>;
+export type { Override };
 
 export const SPEEDS = [0.5, 1, 2, 4] as const;
 /** At 1× one tick takes 2.5 s, so a trading day takes 20 s (SPEC §5). */
@@ -76,15 +76,14 @@ export const useSimStore = create<SimState>((set, get) => ({
 /** The company's state at the current tick, with any demo override applied. */
 export function effectiveCompany(s: Pick<SimState, 'snapshots' | 'index' | 'overrides'>, ticker: string): CompanyState {
   const c = s.snapshots[s.index].companies[ticker];
-  const o = s.overrides[ticker];
-  return o ? { ...c, ...o } : c;
+  return applyOverride(c, s.overrides[ticker]);
 }
 
 /** Selects the raw state and the override separately: merging inside the selector would make a new object on every read and loop forever. */
 export function useCompany(ticker: string): CompanyState {
   const raw = useSimStore((s) => s.snapshots[s.index].companies[ticker]);
   const override = useSimStore((s) => s.overrides[ticker]);
-  return useMemo(() => (override ? { ...raw, ...override } : raw), [raw, override]);
+  return useMemo(() => applyOverride(raw, override), [raw, override]);
 }
 
 /**
