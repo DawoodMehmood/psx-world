@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react';
-import { Canvas, useThree } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { MapControls, OrthographicCamera } from '@react-three/drei';
 import type { MapControls as MapControlsImpl } from 'three-stdlib';
 import { MOUSE, TOUCH } from 'three';
-import { COMPANIES } from '../../config/companies';
-import { WORLD_HALF } from '../../config/layout';
+import { COMPANIES, COMPANY_BY_TICKER } from '../../config/companies';
+import { lotCenter, WORLD_HALF } from '../../config/layout';
 import { useWorldStore } from '../../store/useWorldStore';
 import { Exchange } from '../buildings/Exchange';
 import { CompanyPlot } from '../CompanyPlot';
@@ -32,6 +32,7 @@ export function WorldCanvas() {
       <FitOnResize />
       {import.meta.env.DEV && <DebugHandle />}
       <IsoControls />
+      <CameraFly />
       <Weather />
       <Ground />
       <Exchange />
@@ -97,5 +98,56 @@ function DebugHandle() {
   useEffect(() => {
     (window as unknown as { __psx: unknown }).__psx = state;
   }, [state]);
+  return null;
+}
+
+/** How close the camera gets when it flies to a company, as a multiple of the whole-island zoom. */
+const FLY_ZOOM = 3.4;
+
+/**
+ * Flies the camera to a company when asked (the lab does): the view glides to
+ * the lot and zooms in, and hands control back the moment you pan or zoom.
+ */
+function CameraFly() {
+  const request = useWorldStore((s) => s.focus);
+  const { camera, controls, size } = useThree();
+  const goal = useRef<{ x: number; z: number; zoom: number } | null>(null);
+  useEffect(() => {
+    if (!request) return;
+    const c = COMPANY_BY_TICKER[request.ticker];
+    if (!c) return;
+    const [x, z] = lotCenter(c.sectorId, c.plot);
+    goal.current = { x, z, zoom: fitZoom(size.width, size.height) * FLY_ZOOM };
+  }, [request, size.width, size.height]);
+  useEffect(() => {
+    // the user taking the controls cancels the flight
+    const el = (controls as unknown as { domElement?: HTMLElement } | null)?.domElement;
+    if (!el) return;
+    const stop = () => {
+      goal.current = null;
+    };
+    el.addEventListener('pointerdown', stop);
+    el.addEventListener('wheel', stop);
+    return () => {
+      el.removeEventListener('pointerdown', stop);
+      el.removeEventListener('wheel', stop);
+    };
+  }, [controls]);
+  useFrame((_, frameDt) => {
+    const g = goal.current;
+    const c = controls as unknown as MapControlsImpl | null;
+    if (!g || !c) return;
+    const k = 1 - Math.exp(-Math.min(frameDt, 0.1) * 4);
+    const t = c.target;
+    const ortho = camera as unknown as { zoom: number; updateProjectionMatrix: () => void };
+    const x = t.x + (g.x - t.x) * k;
+    const z = t.z + (g.z - t.z) * k;
+    t.set(x, 0, z);
+    camera.position.set(x + CAM_DIST, CAM_DIST, z + CAM_DIST);
+    ortho.zoom += (g.zoom - ortho.zoom) * k;
+    ortho.updateProjectionMatrix();
+    c.update();
+    if (Math.hypot(g.x - x, g.z - z) < 0.05 && Math.abs(g.zoom - ortho.zoom) < 0.01 * g.zoom) goal.current = null;
+  });
   return null;
 }

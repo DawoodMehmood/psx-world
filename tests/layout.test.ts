@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { COMPANIES, SITE_TIERS } from '../src/config/companies';
 import { SECTORS } from '../src/config/sectors';
-import { districtRect, districtStreets, LOT_SIZE, lotRect, mainRoads, overlaps, parkRect, signSpot, siteRect, WORLD_HALF, type Rect } from '../src/config/layout';
+import { lotCenter, districtRect, districtStreets, LOT_SIZE, lotRect, mainRoads, overlaps, parkRect, signSpot, siteRect, WORLD_HALF, type Rect } from '../src/config/layout';
 import { footprintTier, MAX_LEVEL } from '../src/engine/ladder';
 
 const inside = (r: Rect, outer: Rect) => r.minX >= outer.minX && r.maxX <= outer.maxX && r.minZ >= outer.minZ && r.maxZ <= outer.maxZ;
@@ -66,5 +66,12 @@ describe('city layout', () => {
 
   it('uses unique tickers', () => {
     expect(new Set(COMPANIES.map((c) => c.ticker)).size).toBe(COMPANIES.length);
+  });
+
+  it('puts the camera target for every company at the middle of its own lot', () => {
+    for (const c of COMPANIES) {
+      const [x, z] = lotCenter(c.sectorId, c.plot);
+      expect(inside({ minX: x, maxX: x, minZ: z, maxZ: z }, lotRect(c.sectorId, c.plot))).toBe(true);
+    }
   });
 });

@@ -49,11 +49,14 @@ export function LabPanel() {
   const tour = useMemo(labTour, []);
   const [step, setStep] = useState(0);
 
+  const flyTo = useWorldStore((s) => s.flyTo);
+  // opening the lab, and every change of company inside it, flies the camera there
   useEffect(() => {
     if (!show) return;
     setPlaying(false);
     if (!selected) select(ticker);
-  }, [show, selected, ticker, select, setPlaying]);
+    flyTo(ticker);
+  }, [show, selected, ticker, select, setPlaying, flyTo]);
 
   if (!show) return null;
   const state = applyOverride(raw, override);
@@ -96,6 +99,10 @@ export function LabPanel() {
           ))}
         </select>
       </label>
+
+      <button className="link" onClick={() => flyTo(ticker)}>
+        Fly the camera here
+      </button>
 
       <h3>Every stage, in order</h3>
       <div className="lab-tour">

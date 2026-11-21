@@ -67,6 +67,11 @@ export function lotBackCorner(sectorId: SectorId, plot: number): [number, number
   return [lot.minX, lot.minZ];
 }
 
+/** Centre of a lot on the ground: where the camera looks when it flies to a company. */
+export function lotCenter(sectorId: SectorId, plot: number): [number, number] {
+  return center(lotRect(sectorId, plot));
+}
+
 export function parkRect(sectorId: SectorId): Rect {
   const [u, v] = PARK_UV;
   return uvRect(sectorId, u, v, u + LOT_SIZE, v + LOT_SIZE);
