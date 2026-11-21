@@ -4,7 +4,7 @@ import { MeshStandardMaterial, type Mesh } from 'three';
 import { useMarketVisual } from '../../store/useSimStore';
 import { Workers, type Lane } from '../agents';
 import { Box, Cyl, Dome, Tree, GEO } from '../kit';
-import { Static } from '../Static';
+import { Static, StaticScope } from '../Static';
 import { glowFor } from '../../engine/visual';
 import { LightPool } from '../effects/LightPool';
 import { ACTIVITY_INTENSITY, createMotion, MotionContext } from '../motion';
@@ -53,6 +53,7 @@ export function Exchange() {
   const columns: number[] = [-2.4, -1.2, 0, 1.2, 2.4];
   return (
     <MotionContext.Provider value={motion}>
+      <StaticScope>
       <group>
         {[-5.6, 5.6].flatMap((x) => [-5.6, 5.6].map((z) => <Tree key={`${x}${z}`} at={[x, 0.08, z]} size={0.9} />))}
         <Static>
@@ -87,6 +88,7 @@ export function Exchange() {
           <Workers lanes={PLAZA_LANES} max={18} min={2} office />
         </group>
       </group>
+      </StaticScope>
     </MotionContext.Provider>
   );
 }

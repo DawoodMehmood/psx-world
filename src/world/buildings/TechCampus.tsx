@@ -537,7 +537,10 @@ function CoolingFans({ closed }: { closed: boolean }) {
     <group>
       {[-1.4, -0.2, 1.0].map((x, i) => (
         <group key={x} position={[x, 1.8, 0.45]}>
-          <Box size={[0.6, 0.3, 0.5]} color="#9aa6af" rounded={0.04} />
+          <Static>
+            <Box size={[0.6, 0.3, 0.5]} color="#9aa6af" rounded={0.04} />
+            <Cyl r={0.2} h={0.02} at={[0, 0.15, 0]} color="#47505a" low shadow={false} />
+          </Static>
           <mesh
             ref={(el) => {
               fans.current[i] = el;
@@ -547,7 +550,6 @@ function CoolingFans({ closed }: { closed: boolean }) {
             <boxGeometry args={[0.46, 0.03, 0.08]} />
             <meshStandardMaterial color="#3a3f4a" flatShading />
           </mesh>
-          <Cyl r={0.2} h={0.02} at={[0, 0.15, 0]} color="#47505a" low shadow={false} />
         </group>
       ))}
     </group>

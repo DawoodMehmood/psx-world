@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { districtRect, districtStreets, mainRoads, center, WORLD_HALF, type Rect } from '../../config/layout';
 import { SECTORS } from '../../config/sectors';
 import { Box } from '../kit';
+import { Static, StaticScope } from '../Static';
 
 const size = (r: Rect): [number, number] => [r.maxX - r.minX, r.maxZ - r.minZ];
 
@@ -16,7 +17,8 @@ export function Ground() {
   const edge = WORLD_HALF;
   const roads = [...mainRoads(), ...SECTORS.flatMap((s) => districtStreets(s.id))];
   return (
-    <group>
+    <StaticScope>
+    <Static>
       {/* island: grass top over a chunky dirt block */}
       <Box size={[edge * 2 + 1, 3, edge * 2 + 1]} at={[0, -3.2, 0]} color="#a0703f" shadow={false} />
       <Box size={[edge * 2 + 1.3, 0.5, edge * 2 + 1.3]} at={[0, -0.95, 0]} color="#7a5230" shadow={false} />
@@ -30,8 +32,8 @@ export function Ground() {
         <Slab key={i} rect={r} y={0.01} h={0.05} color="#8e8b88" />
       ))}
       <LaneDashes />
-
-    </group>
+    </Static>
+    </StaticScope>
   );
 }
 

@@ -178,7 +178,7 @@ export function TowerCrane({ at, height, working }: { at: Vec3; height: number; 
         ))}
       </Static>
       <group ref={jib} position={[0, height + 0.25, 0]}>
-        <Static>
+        <Static moving>
           <Box size={[0.45, 0.45, 0.45]} at={[0, 0, 0]} color="#f2b632" />
           <Box size={[3.4, 0.18, 0.22]} at={[1.5, 0.3, 0]} color="#f2b632" />
           <Box size={[1.2, 0.18, 0.22]} at={[-0.7, 0.3, 0]} color="#f2b632" />

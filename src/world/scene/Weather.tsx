@@ -31,9 +31,11 @@ const LOOKS: Record<MarketMood | 'STORMY', Look> = {
 /** Where the sun stands relative to the point the camera looks at. */
 const SUN_OFFSET: [number, number, number] = [36, 60, 22];
 const SHADOW_MAX = 92;
+const SHADOW_EVERY = 2;
 
 export function Weather() {
-  const { camera, controls, size } = useThree();
+  const { camera, controls, size, gl } = useThree();
+  const frames = useRef(0);
   const { mood, stormy } = useMarketVisual();
   const look = LOOKS[stormy ? 'STORMY' : mood];
   const sun = useRef<DirectionalLight>(null);
@@ -59,6 +61,9 @@ export function Weather() {
       sun.current.color.lerp(target.sun.set(look.sun), k);
       sun.current.intensity += (look.sunIntensity - sun.current.intensity) * k;
     }
+    // the shadow map is redrawn every other frame: shadows of moving things lag by a frame, invisibly, and the shadow pass costs half as much
+    gl.shadowMap.autoUpdate = false;
+    if (frames.current++ % SHADOW_EVERY === 0) gl.shadowMap.needsUpdate = true;
     // the shadow box follows the view, so only what you can see (and its neighbours) is drawn into the shadow map
     const light = sun.current;
     if (light) {

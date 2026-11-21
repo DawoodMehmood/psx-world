@@ -396,7 +396,7 @@ Open the **Lab tab of the bottom dock** (next to Player; or press **B**, or "Ope
 - **Sectors read all their companies.** Sector breadth and mood use the whole pool, shown or not, so the district's mood does not change when you swap. The demo scenario has every pool company follow a leader in its sector.
 - **Per-company random streams** in the generator, so adding a company never changes anyone else's numbers.
 - **Opening view** is centred on the Exchange at about the old zoom; the whole island is one zoom-out away.
-- **Performance is over budget:** ~2,460 draw calls (target under 1,000). See the skill's 2026-11-23 note for the numbers and next levers.
+- **Performance:** with 24 lots the first measurement was ~2,460 draw calls; after the perf pass it is ~960 per frame averaged (peak frames ~1,265; day 40 ~1,180). See the skill's 2026-11-23 notes for what changed and the remaining levers.
 - Accents for new companies are derived from the ticker. The spare two lots per district are open ground for now.
 
 ## 12. Items to tune by eye, and open questions

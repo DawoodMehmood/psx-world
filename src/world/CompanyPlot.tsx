@@ -11,6 +11,7 @@ import { EventEffects } from './effects/EventEffects';
 import { HaltTape } from './effects/HaltTape';
 import { LightPool } from './effects/LightPool';
 import { Box } from './kit';
+import { Static, StaticScope } from './Static';
 import { pace } from '../engine/visual';
 import { createMotion, MotionContext } from './motion';
 import { ReservedLand, SiteExpansion } from './site';
@@ -69,6 +70,7 @@ export function CompanyPlot({ company, plot, index }: { company: CompanyDefiniti
   return (
     <MotionContext.Provider value={motion}>
       <group position={[bx, 0, bz]}>
+        <StaticScope>
         <ReservedLand depth={depth} clearTo={grading ? nextDepth : depth} seed={seed} />
         {visual.expansionStage && <SiteExpansion from={depth} to={nextDepth} stage={visual.expansionStage} paused={visual.expansionPaused} />}
         <group
@@ -88,8 +90,10 @@ export function CompanyPlot({ company, plot, index }: { company: CompanyDefiniti
         >
           <LightPool at={[LOT_SIZE / 2, 0.215, depth / 2]} w={LOT_SIZE} d={depth} />
           {/* site pad with a curb */}
-          <Box size={[LOT_SIZE, 0.14, depth]} at={[LOT_SIZE / 2, 0, depth / 2]} color="#d6cdb8" rounded={0.06} shadow={false} />
-          <Box size={[LOT_SIZE - 0.4, 0.06, depth - 0.4]} at={[LOT_SIZE / 2, 0.12, depth / 2]} color={sector.pad} shadow={false} />
+          <Static>
+            <Box size={[LOT_SIZE, 0.14, depth]} at={[LOT_SIZE / 2, 0, depth / 2]} color="#d6cdb8" rounded={0.06} shadow={false} />
+            <Box size={[LOT_SIZE - 0.4, 0.06, depth - 0.4]} at={[LOT_SIZE / 2, 0.12, depth / 2]} color={sector.pad} shadow={false} />
+          </Static>
           <group position={[0, 0.18, 0]}>
             {buildings}
             <group position={[LOT_SIZE / 2, 0, depth / 2]}>
@@ -99,6 +103,7 @@ export function CompanyPlot({ company, plot, index }: { company: CompanyDefiniti
           </group>
         </group>
         {(selected || hovered) && <SelectionRing w={LOT_SIZE} d={depth} strong={selected} />}
+        </StaticScope>
       </group>
     </MotionContext.Provider>
   );

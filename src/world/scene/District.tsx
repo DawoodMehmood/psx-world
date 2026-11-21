@@ -8,7 +8,7 @@ import { useSectorVisual } from '../../store/useSimStore';
 import { useWorldStore } from '../../store/useWorldStore';
 import { Antenna } from '../buildings/TechCampus';
 import { Box, Car, Cone, Cyl, GEO, mat, Rope, type Vec3 } from '../kit';
-import { Static } from '../Static';
+import { Static, StaticScope } from '../Static';
 import { glowFor } from '../../engine/visual';
 import { LightPool } from '../effects/LightPool';
 import { ACTIVITY_INTENSITY, agentCount, createMotion, MotionContext, useMotion } from '../motion';
@@ -49,6 +49,7 @@ export function District({ sector }: { sector: SectorDefinition }) {
   const selectSector = useWorldStore((s) => s.selectSector);
   return (
     <MotionContext.Provider value={motion}>
+      <StaticScope>
       <group position={[px, 0, pz]}>
         {/* the whole park is the click target for the district card */}
         <mesh
@@ -77,6 +78,7 @@ export function District({ sector }: { sector: SectorDefinition }) {
         ))}
         <Bunting mood={state.mood} color={sector.color} />
       </group>
+      </StaticScope>
       <DistrictTraffic id={sector.id} />
     </MotionContext.Provider>
   );

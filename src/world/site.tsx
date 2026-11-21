@@ -82,7 +82,7 @@ function Grader({ at, travel, working }: { at: [number, number]; travel: number;
   });
   return (
     <group ref={g} position={[at[0], 0, at[1]]}>
-      <Static>
+      <Static moving>
         <Box size={[1.4, 0.4, 0.8]} at={[0, 0.15, 0]} color="#f2b632" rounded={0.06} />
         <Box size={[0.6, 0.5, 0.7]} at={[-0.3, 0.55, 0]} color="#f2b632" rounded={0.06} />
         <Box size={[0.1, 0.35, 1.1]} at={[0.8, 0.05, 0]} color="#6d675f" />

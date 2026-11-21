@@ -163,7 +163,7 @@ export function Trees({ trees }: { trees: TreeSpec[] }) {
 export function Car({ color, at = [0, 0, 0], rotY = 0 }: { color: string; at?: Vec3; rotY?: number }) {
   return (
     <group position={at} rotation={[0, rotY, 0]}>
-      <Static>
+      <Static moving single>
         <Box size={[1.1, 0.35, 0.6]} at={[0, 0.12, 0]} color={color} rounded={0.08} />
         <Box size={[0.6, 0.28, 0.52]} at={[-0.08, 0.45, 0]} color="#dff3ff" rounded={0.06} />
         <Cyl r={0.13} h={0.64} at={[0.32, 0.13, 0]} rot={[Math.PI / 2, 0, 0]} color="#2c2c34" low center shadow={false} />
