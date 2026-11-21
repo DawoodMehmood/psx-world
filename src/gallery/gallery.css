@@ -1,0 +1,152 @@
+.g-root {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  grid-template-columns: 220px 1fr 320px;
+  gap: 12px;
+  padding: 12px;
+  font-size: 14px;
+}
+.g-list,
+.g-panel {
+  background: var(--card);
+  border: 3px solid var(--edge);
+  border-radius: 16px;
+  box-shadow: 0 5px 0 var(--edge);
+  padding: 12px 14px;
+  overflow-y: auto;
+  min-height: 0;
+}
+.g-stage {
+  position: relative;
+  border: 3px solid var(--edge);
+  border-radius: 16px;
+  box-shadow: 0 5px 0 var(--edge);
+  overflow: hidden;
+  min-height: 0;
+}
+.g-title {
+  font-weight: 700;
+  font-size: 18px;
+}
+.g-back {
+  display: block;
+  margin: 4px 0 8px;
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-size: 13px;
+}
+.g-list h3,
+.g-panel h3 {
+  margin: 14px 0 6px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.g-panel h2 {
+  margin: 0 0 6px;
+  font-size: 20px;
+}
+.g-list button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  padding: 6px 10px;
+  margin-bottom: 3px;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  background: none;
+  color: var(--ink);
+  cursor: pointer;
+}
+.g-list button:hover {
+  background: #f1ecdc;
+}
+.g-list button.on {
+  background: #ffd23f;
+  border-color: var(--edge);
+  font-weight: 600;
+}
+.g-source {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.g-source code {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  background: #f1ecdc;
+  padding: 4px 6px;
+  border-radius: 6px;
+}
+.g-source button,
+.g-btn,
+.g-seg button {
+  font: inherit;
+  font-size: 12px;
+  padding: 3px 9px;
+  border: 2px solid var(--edge);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+}
+.g-stats {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+.g-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  align-items: center;
+}
+.g-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 3px 0;
+}
+.g-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 6px 0;
+}
+.g-field span {
+  white-space: nowrap;
+}
+.g-field input[type='range'],
+.g-field select {
+  flex: 1;
+  min-width: 0;
+  max-width: 190px;
+}
+.g-seg {
+  margin: 8px 0;
+}
+.g-seg > span {
+  display: block;
+  font-size: 12px;
+  color: var(--ink-soft);
+  margin-bottom: 3px;
+}
+.g-seg > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.g-seg button.on {
+  background: #ffd23f;
+  font-weight: 600;
+}
+.g-note {
+  font-size: 12px;
+  color: var(--ink-soft);
+}

@@ -338,7 +338,7 @@ Better building models (procedural, or a GLB kit), animation easing, sound (opti
 A `PsxSource` stub plus docs on the adapter boundary. No live feed unless we decide to build one.
 
 **Backlog** (not scheduled; pick up when there's room)
-- **Asset gallery** (dev only, e.g. `?assets`): each asset alone on a turntable, with Health and Activity toggles and the file and line it lives in.
+- ~~**Asset gallery**~~ *(done: run `npm run dev`, open `/psx-world/?assets` or `?assets=<id>`. Registry in `src/gallery/assets.tsx`: add an entry and it appears in the list. Each asset sits on a turntable with grid, freeze and refit, its look knobs, Health, Activity, Volatility, Today, Halt, site tier and construction stages, the file and line it lives in (read from the source, so it follows edits) and live mesh and triangle counts.)*
 - **Visual asset editor** on top of the gallery: click a part to edit its size, position, rotation and color (type, slider, color picker or drag gizmo); duplicate or delete parts; Save writes the change into the source file through a dev-only Vite middleware, so edits are real code. Literal values only: computed values show read-only, and a repeated part edits all its copies. Plan: tag kit shapes with their source location in dev, rewrite just that JSX attribute on save.
 - **Mixer truck:** the drum dips into the chassis at its back end (raise it); replace the diagonal stripe with a band around the drum, or the company's ticker.
 
