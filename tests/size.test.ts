@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { SIZE_RULES } from '../src/config/thresholds';
 import { BuiltLevelTracker, builtLevel, ceilingLevel, cyclePosition, logPosition, smoothCap, smoothSeries } from '../src/engine/size';
 import { generateCapHistory } from '../src/sim/history';
+import { COMPANIES } from '../src/config/companies';
 import { CAP_SEEDS, simulatedSizes } from '../src/sim/capSeeds';
 
 const SECTOR = { low: 10, high: 1000 };
@@ -190,6 +191,7 @@ describe('simulated sizes', () => {
   });
 
   it('seeds a cycle for every company', () => {
-    expect(Object.keys(CAP_SEEDS)).toHaveLength(12);
+    expect(Object.keys(CAP_SEEDS)).toHaveLength(COMPANIES.length);
+    for (const c of COMPANIES) expect(CAP_SEEDS[c.ticker].cycle, c.ticker).toBeGreaterThan(0);
   });
 });

@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef } from 'react';
 import { TICKS_PER_DAY } from '../engine/types';
 import { clockTime, SPEEDS, TICK_MS, useClock, useSimStore } from '../store/useSimStore';
 import { SCENARIOS } from '../sim/scenarios';
+import { placedTickers } from '../config/roster';
+import { useRosterStore } from '../store/useRosterStore';
 import { useWorldStore } from '../store/useWorldStore';
 import { LabBody } from './LabPanel';
 import { siteNews, siteNewsLine } from './siteNews';
@@ -40,10 +42,11 @@ export function DemoBar() {
   const { setPlaying, stepTick, stepDay, setSpeed, setIndex, reset, loadScenario } = useSimStore();
   const clock = useClock();
   // What changed on the sites overnight: the day's start against the day before's.
+  const roster = useRosterStore((s) => s.roster);
   const news = useMemo(() => {
     const at = (day: number) => snapshots[(day - 1) * TICKS_PER_DAY]?.companies;
-    return clock.day > 1 ? siteNewsLine(siteNews(at(clock.day - 1), at(clock.day))) : '';
-  }, [snapshots, clock.day]);
+    return clock.day > 1 ? siteNewsLine(siteNews(at(clock.day - 1), at(clock.day), placedTickers(roster))) : '';
+  }, [snapshots, clock.day, roster]);
   const days = snapshots.length / TICKS_PER_DAY;
   const lab = useWorldStore((s) => s.showLab);
   const setLab = useWorldStore((s) => s.setShowLab);

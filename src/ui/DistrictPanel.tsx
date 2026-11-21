@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
-import { COMPANIES } from '../config/companies';
+import { COMPANY_BY_TICKER } from '../config/companies';
+import { useRosterStore } from '../store/useRosterStore';
 import { SECTOR_BY_ID, type SectorId } from '../config/sectors';
 import { ACTIVITY, DIRECTION, type CompanyState, type SectorState } from '../engine/types';
 import { useSimStore } from '../store/useSimStore';
@@ -27,7 +28,8 @@ function DistrictCard({ id, onClose }: { id: SectorId; onClose: () => void }) {
   const state = useSimStore((s) => s.snapshots[s.index].sectors[id]);
   const companies = useSimStore((s) => s.snapshots[s.index].companies);
   const select = useWorldStore((s) => s.select);
-  const members = COMPANIES.filter((c) => c.sectorId === id).map((c) => ({ def: c, state: companies[c.ticker] }));
+  const roster = useRosterStore((st) => st.roster);
+  const members = roster[id as keyof typeof roster].map((t) => ({ def: COMPANY_BY_TICKER[t], state: companies[t] }));
   const breadthPct = Math.round(state.breadth * 100);
   const activityIdx = ACTIVITY.indexOf(state.activity);
   return (

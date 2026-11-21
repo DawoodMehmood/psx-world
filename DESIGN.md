@@ -389,6 +389,16 @@ Each step ends with tests and a build.
 
 Open the **Lab tab of the bottom dock** (next to Player; or press **B**, or "Open the lab" on a company card) to force any state on the selected company without touching the simulation: any level 1–10, building the next level or winding the current one down at any progress, any health, activity, direction or volatility, halted, and any event switched on until you switch it off. The ◀ ▶ arrows step through all 82 states of the ladder in order (each level finished, then every stage going up, then every stage winding down). It pauses simulation time while open and resumes it, if it was playing, when you go back to the Player tab. It is three columns on desktop and one on phones, and the company card hides while it is open. Pure logic is in `engine/lab.ts` (`labTour`, `labSite`, `applyOverride`) with tests. The camera glides to the selected company's lot and zooms in when the lab opens and whenever you change company in it (or press "Fly the camera here"); touching the map cancels the flight.
 
+### More companies per sector: lots and rosters (built)
+
+- **Lots are separate from companies.** A district is a 3×3 grid of cells (eight lots plus the park in the far corner); the world is 120 wide. `config/roster.ts` says who stands where: six per district by default (hand-picked for variety of size, not top-N by cap), chosen from a pool of 36 real companies (10 banks, 9 oil and gas, 9 cement, 8 tech). Oil is now "Oil & Gas" and includes marketing and refining names, since only four exploration companies are listed.
+- **Swaps are personal.** The company card has "Company on this lot": pick any company of that sector; choosing one already on another lot trades places. Saved in this browser only (`psx-world-roster`); "Back to the default city" clears it. Pure logic and tests in `config/roster.ts`. A swap changes the lot instantly: the site snaps to the new company's level, with no wind-down and rebuild yet.
+- **Sectors read all their companies.** Sector breadth and mood use the whole pool, shown or not, so the district's mood does not change when you swap. The demo scenario has every pool company follow a leader in its sector.
+- **Per-company random streams** in the generator, so adding a company never changes anyone else's numbers.
+- **Opening view** is centred on the Exchange at about the old zoom; the whole island is one zoom-out away.
+- **Performance is over budget:** ~2,460 draw calls (target under 1,000). See the skill's 2026-11-23 note for the numbers and next levers.
+- Accents for new companies are derived from the ticker. The spare two lots per district are open ground for now.
+
 ## 12. Items to tune by eye, and open questions
 
 Starting numbers to tune: all band thresholds, weights (0.7/0.3 ceiling; 0.35/0.25/0.40 health; 0.7/0.3 activity), the 60-day and 5-year windows, build durations, hysteresis margins, the level at which footprint steps.

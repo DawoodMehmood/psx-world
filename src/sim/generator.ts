@@ -25,15 +25,25 @@ export function generateMarket(
   /** Where each company's price starts, and its daily market-cap history in Rs billions (see capSeeds). */
   start: { prices: Record<string, number>; capHistory: Record<string, number[]> },
 ): MarketData {
-  const rng = createRng(scenario.seed);
-  const gauss = () => {
-    const u = Math.max(rng(), 1e-9);
-    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * rng());
-  };
+  // Each company has its own random stream, seeded from the scenario and its ticker, so adding or
+  // removing a company never changes anyone else's numbers.
+  const streams = new Map(
+    tickers.map((t) => {
+      let h = scenario.seed >>> 0;
+      for (const ch of t) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0;
+      const rng = createRng(h);
+      const gauss = () => {
+        const u = Math.max(rng(), 1e-9);
+        return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * rng());
+      };
+      return [t, { rng, gauss }] as const;
+    }),
+  );
 
   const base = new Map<string, { price: number; volume: number }>();
   const history: Record<string, History> = {};
   for (const t of tickers) {
+    const { rng, gauss } = streams.get(t)!;
     // The random draw stays so every other number in a scenario is unchanged.
     const drawn = Math.round((40 + rng() * 800) * 100) / 100;
     const b = { price: start.prices[t] ?? drawn, volume: Math.round(2e5 + rng() * 4e6) };
@@ -57,6 +67,7 @@ export function generateMarket(
         const planned = scenario.plan(t, day);
         const plan = planned ?? {};
         const halted = !!plan.halt && tick >= plan.halt[0] && tick <= plan.halt[1];
+        const { rng, gauss } = streams.get(t)!;
         const noise = gauss() * (plan.noise ?? DEFAULT_NOISE);
         const jitter = 0.85 + 0.3 * rng();
         let p = price.get(t)!;

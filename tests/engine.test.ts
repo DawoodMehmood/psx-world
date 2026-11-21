@@ -121,7 +121,8 @@ describe('Lucky Cement scenario', () => {
     expect(at(33, 7).LUCK.health).toBe('WEAK');
     expect(at(35, 7).LUCK.health).toBe('STRUGGLING');
     const healthRank = ['STRUGGLING', 'WEAK', 'STEADY', 'STRONG', 'THRIVING'];
-    const closes = snaps.filter((_, i) => i >= 25 * TICKS_PER_DAY && i % TICKS_PER_DAY === TICKS_PER_DAY - 1).map((s) => healthRank.indexOf(s.companies.LUCK.health));
+    // from day 30: the crash of day 9 has left the 20-day window by then, so health can only get worse
+    const closes = snaps.filter((_, i) => i >= 29 * TICKS_PER_DAY && i % TICKS_PER_DAY === TICKS_PER_DAY - 1).map((s) => healthRank.indexOf(s.companies.LUCK.health));
     expect(closes.every((h, i) => i === 0 || h <= closes[i - 1])).toBe(true);
   });
 

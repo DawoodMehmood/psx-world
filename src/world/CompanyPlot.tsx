@@ -16,14 +16,14 @@ import { createMotion, MotionContext } from './motion';
 import { ReservedLand, SiteExpansion } from './site';
 
 /**
- * One company's lot: its current site (as deep as its tier) with buildings,
+ * One company's lot (the lot is the place, the company is whoever the roster puts there): its current site (as deep as its tier) with buildings,
  * light pool, effects and selection ring, plus the reserved land in front of it that
  * it can grow into. Everything is drawn in site coordinates: origin at the
  * lot's back corner, the site in +x and +z (toward the camera).
  */
-export function CompanyPlot({ company, index }: { company: CompanyDefinition; index: number }) {
+export function CompanyPlot({ company, plot, index }: { company: CompanyDefinition; plot: number; index: number }) {
   const sector = SECTOR_BY_ID[company.sectorId];
-  const [bx, bz] = lotBackCorner(company.sectorId, company.plot);
+  const [bx, bz] = lotBackCorner(company.sectorId, plot);
   const Buildings = ARCHETYPES[company.archetype];
   const selected = useWorldStore((s) => s.selectedTicker === company.ticker);
   const hovered = useWorldStore((s) => s.hoveredTicker === company.ticker);

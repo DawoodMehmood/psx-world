@@ -27,7 +27,7 @@ export interface CapRange {
 export const SECTORS: SectorDefinition[] = [
   { id: 'banks', name: 'Commercial Banks', quadrant: [-1, -1], ground: '#9fd16a', pad: '#e9e2d0', color: '#3b82c4', capRange: { low: 20, high: 1200 } },
   { id: 'tech', name: 'Tech & Communication', quadrant: [1, -1], ground: '#8fcf86', pad: '#dfe7e4', color: '#7c5cd6', capRange: { low: 5, high: 250 } },
-  { id: 'oil', name: 'Oil & Gas Exploration', quadrant: [-1, 1], ground: '#d8bf86', pad: '#cfae74', color: '#d9822b', capRange: { low: 30, high: 1500 } },
+  { id: 'oil', name: 'Oil & Gas', quadrant: [-1, 1], ground: '#d8bf86', pad: '#cfae74', color: '#d9822b', capRange: { low: 30, high: 1500 } },
   { id: 'cement', name: 'Cement', quadrant: [1, 1], ground: '#cdc3ad', pad: '#bdb39f', color: '#7d7468', capRange: { low: 15, high: 650 } },
 ];
 

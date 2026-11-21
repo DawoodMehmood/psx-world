@@ -1,3 +1,4 @@
+import { COMPANIES } from '../../config/companies';
 import type { DayPlan, Scenario } from '../types';
 
 /**
@@ -9,8 +10,20 @@ import type { DayPlan, Scenario } from '../types';
  */
 type Segment = [tickers: string[] | '*', from: number, to: number, plan: DayPlan];
 
-const OIL = ['OGDC', 'PPL', 'MARI'];
-const CEMENT = ['LUCK', 'DGKC', 'FCCL'];
+const inSector = (id: string) => COMPANIES.filter((c) => c.sectorId === id).map((c) => c.ticker);
+const without = (xs: string[], drop: string[]) => xs.filter((t) => !drop.includes(t));
+
+/**
+ * Every company the city can show has a part in the story. The three the story
+ * is about keep their own beats; the rest of their sector follows a quieter
+ * leader (UBL, PPL, DGKC and TRG), so district moods read with a full roster.
+ */
+const OIL = inSector('oil');
+const CEMENT = inSector('cement');
+const BANK_FOLLOWERS = without(inSector('banks'), ['MEBL', 'HBL', 'UBL']);
+const OIL_FOLLOWERS = without(inSector('oil'), ['OGDC', 'PPL', 'MARI']);
+const CEMENT_FOLLOWERS = without(inSector('cement'), ['LUCK', 'DGKC', 'FCCL']);
+const TECH_FOLLOWERS = without(inSector('tech'), ['SYS', 'TRG', 'AVN']);
 
 const SEGMENTS: Segment[] = [
   // 1–8: a quiet day, a tech spike, a bank rally, a frantic but flat oil day
@@ -20,18 +33,18 @@ const SEGMENTS: Segment[] = [
   // the banks gap up at the open together, so the district rallies all day
   [['MEBL'], 5, 8, { gap: 1, drift: 0.6, volume: 2 }],
   [['HBL'], 5, 8, { gap: 0.9, drift: 0.5, volume: 1.8 }],
-  [['UBL'], 5, 8, { gap: 0.9, drift: 0.4, volume: 1.6 }],
+  [['UBL', ...BANK_FOLLOWERS], 5, 8, { gap: 0.9, drift: 0.4, volume: 1.6 }],
   [['OGDC'], 6, 6, { volume: 4.2, zigzag: 0.6 }],
 
   // 9–13: cement weakens broadly; a DGKC halt; AVN swings wildly
-  [CEMENT, 9, 11, { drift: -1.1, volume: 0.45 }],
+  [CEMENT, 9, 11, { drift: -1.5, volume: 0.45 }],
   [['DGKC'], 10, 10, { drift: -0.8, volume: 0.45, halt: [2, 5] }],
   [['MEBL'], 9, 13, { drift: -0.3 }],
   [['HBL'], 9, 13, { drift: -0.4 }],
-  [['UBL'], 9, 13, { drift: -0.5 }],
+  [['UBL', ...BANK_FOLLOWERS], 9, 13, { drift: -0.5 }],
   [['SYS'], 9, 13, { drift: 0.1 }],
   // the zigzag nets half a swing up, so a matching drift down ends the day flat
-  [['AVN'], 12, 12, { zigzag: 2, drift: -1, volume: 2.2 }],
+  [['AVN'], 12, 12, { zigzag: 2, drift: -1.5, volume: 2.2 }],
 
   // 14–15: a broad selloff, day 15 the worst
   ['*', 14, 14, { drift: -2.2, volume: 1.8 }],
@@ -39,10 +52,10 @@ const SEGMENTS: Segment[] = [
 
   // 16–25: an uneven recovery: banks and tech first, cement lags
   [['MEBL'], 16, 25, { drift: 0.9, volume: 1.3 }],
-  [['UBL'], 16, 25, { drift: 0.7, volume: 1.2 }],
+  [['UBL', ...BANK_FOLLOWERS], 16, 25, { drift: 0.7, volume: 1.2 }],
   [['HBL'], 16, 23, { drift: 0.4, volume: 1.1 }],
   [['SYS'], 16, 25, { drift: 0.6, volume: 1.2 }],
-  [['TRG', 'AVN'], 16, 25, { drift: 0.5, volume: 1.1 }],
+  [['TRG', 'AVN', ...TECH_FOLLOWERS], 16, 25, { drift: 0.5, volume: 1.1 }],
   [OIL, 16, 25, { drift: 0.3 }],
   [CEMENT, 16, 25, { drift: 0.1, volume: 0.7 }],
   [['LUCK'], 18, 18, { drift: 0.6, dividendTick: 3 }],
@@ -52,14 +65,14 @@ const SEGMENTS: Segment[] = [
 
   // 26–40: long arcs: growers keep growing, two old names slide
   [['MEBL'], 26, 40, { drift: 0.4 }],
-  [['UBL'], 26, 40, { drift: 0.2 }],
+  [['UBL', ...BANK_FOLLOWERS], 26, 40, { drift: 0.2 }],
   [['HBL'], 24, 40, { drift: -0.9, volume: 0.8 }],
   [['SYS'], 26, 40, { drift: 0.5, volume: 1.3 }],
-  [['TRG', 'AVN'], 26, 40, { drift: 0.1 }],
-  [['OGDC'], 26, 40, { drift: -0.8, volume: 0.8 }],
-  [['PPL'], 26, 40, { drift: 0.1 }],
+  [['TRG', 'AVN', ...TECH_FOLLOWERS], 26, 40, { drift: 0.1 }],
+  [['OGDC'], 26, 40, { drift: -1.5, volume: 0.8 }],
+  [['PPL', ...OIL_FOLLOWERS], 26, 40, { drift: 0.1 }],
   [['FCCL'], 26, 40, { drift: 1.1, volume: 1.4 }],
-  [['LUCK', 'DGKC'], 26, 40, { drift: 0.2 }],
+  [['LUCK', 'DGKC', ...CEMENT_FOLLOWERS], 26, 40, { drift: 0.2 }],
 ];
 
 function plan(ticker: string, day: number): DayPlan | undefined {

@@ -1,4 +1,3 @@
-import { COMPANIES } from '../config/companies';
 import type { CompanyState } from '../engine/types';
 
 /**
@@ -6,9 +5,9 @@ import type { CompanyState } from '../engine/types';
  * demo bar adds under each day's caption. Computed from the states, so it is
  * always true of what is on screen.
  */
-export function siteNews(before: Record<string, CompanyState>, after: Record<string, CompanyState>): string[] {
+export function siteNews(before: Record<string, CompanyState>, after: Record<string, CompanyState>, tickers: string[] = Object.keys(after)): string[] {
   const news: string[] = [];
-  for (const { ticker } of COMPANIES) {
+  for (const ticker of tickers) {
     const a = before[ticker];
     const b = after[ticker];
     if (!a || !b) continue;

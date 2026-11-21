@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { COMPANIES } from '../config/companies';
+import { COMPANY_BY_TICKER } from '../config/companies';
+import { placedTickers } from '../config/roster';
+import { useRosterStore } from '../store/useRosterStore';
 import { applyOverride, LAB_EVENTS, labTour, type BuildMode, type LabBuild, type Override } from '../engine/lab';
 import { kindOf, MAX_LEVEL } from '../engine/ladder';
 import { ACTIVITY, DIRECTION, HEALTH, VOLATILITY } from '../engine/types';
@@ -39,7 +41,9 @@ export function useLabKey() {
 export function LabBody() {
   const selected = useWorldStore((s) => s.selectedTicker);
   const select = useWorldStore((s) => s.select);
-  const ticker = selected ?? COMPANIES[0].ticker;
+  const roster = useRosterStore((s) => s.roster);
+  const placed = placedTickers(roster);
+  const ticker = selected && placed.includes(selected) ? selected : placed[0];
   const override = useSimStore((s) => s.overrides[ticker]);
   const raw = useSimStore((s) => s.snapshots[s.index].companies[ticker]);
   const setOverride = useSimStore((s) => s.setOverride);
@@ -92,9 +96,9 @@ export function LabBody() {
       <label className="lab-row">
         Company
         <select value={ticker} onChange={(e) => select(e.target.value)}>
-          {COMPANIES.map((c) => (
-            <option key={c.ticker} value={c.ticker}>
-              {c.ticker} · {c.archetype}
+          {placed.map((t) => (
+            <option key={t} value={t}>
+              {t} · {COMPANY_BY_TICKER[t].archetype}
             </option>
           ))}
         </select>

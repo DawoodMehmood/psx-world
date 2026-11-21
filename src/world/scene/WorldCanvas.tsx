@@ -3,7 +3,10 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { MapControls, OrthographicCamera } from '@react-three/drei';
 import type { MapControls as MapControlsImpl } from 'three-stdlib';
 import { MOUSE, TOUCH } from 'three';
-import { COMPANIES, COMPANY_BY_TICKER } from '../../config/companies';
+import { COMPANY_BY_TICKER } from '../../config/companies';
+import { LOTS_PER_DISTRICT, plotOf } from '../../config/roster';
+import { SECTORS } from '../../config/sectors';
+import { useRosterStore } from '../../store/useRosterStore';
 import { lotCenter, WORLD_HALF } from '../../config/layout';
 import { useWorldStore } from '../../store/useWorldStore';
 import { Exchange } from '../buildings/Exchange';
@@ -36,20 +39,34 @@ export function WorldCanvas() {
       <Weather />
       <Ground />
       <Exchange />
-      {COMPANIES.map((c, i) => (
-        <CompanyPlot key={c.ticker} company={c} index={i} />
-      ))}
+      <Plots />
       <Scenery />
       <LabelProjector />
     </Canvas>
   );
 }
 
-/** Zoom so the whole island fits the viewport. */
+/** One plot per lot: the lot keeps its place and its meshes, whoever the roster puts on it. */
+function Plots() {
+  const roster = useRosterStore((s) => s.roster);
+  return (
+    <>
+      {SECTORS.flatMap((sector, si) =>
+        roster[sector.id].map((ticker, plot) => <CompanyPlot key={`${sector.id}-${plot}`} company={COMPANY_BY_TICKER[ticker]} plot={plot} index={si * LOTS_PER_DISTRICT + plot} />),
+      )}
+    </>
+  );
+}
+
+/** The view the app opens on: the Exchange and the first lots of every district, about what the old whole-island view showed. */
+const START_HALF = 44;
+const startZoom = (width: number, height: number) => Math.min(width / (START_HALF * 2.9), height / (START_HALF * 1.85));
+
+/** Zoom to the opening view (the whole island is still one zoom-out away). */
 function FitOnResize() {
   const { camera, size } = useThree();
   useEffect(() => {
-    camera.zoom = fitZoom(size.width, size.height);
+    camera.zoom = startZoom(size.width, size.height);
     camera.updateProjectionMatrix();
   }, [camera, size.width, size.height]);
   return null;
@@ -116,7 +133,9 @@ function CameraFly() {
     if (!request) return;
     const c = COMPANY_BY_TICKER[request.ticker];
     if (!c) return;
-    const [x, z] = lotCenter(c.sectorId, c.plot);
+    const plot = plotOf(useRosterStore.getState().roster, request.ticker);
+    if (plot === null) return;
+    const [x, z] = lotCenter(c.sectorId, plot);
     goal.current = { x, z, zoom: fitZoom(size.width, size.height) * FLY_ZOOM };
   }, [request, size.width, size.height]);
   useEffect(() => {

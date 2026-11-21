@@ -1,9 +1,10 @@
 import { useMemo, useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { Color, Object3D, type DirectionalLight, type HemisphereLight, type InstancedMesh } from 'three';
 import { WORLD_HALF } from '../../config/layout';
 import type { MarketMood } from '../../engine/types';
 import { useMarketVisual } from '../../store/useSimStore';
+import { shadowRadius } from './shadowFit';
 
 /**
  * The sky and the light follow the market (SPEC §11): brighter and warmer in
@@ -27,7 +28,12 @@ const LOOKS: Record<MarketMood | 'STORMY', Look> = {
   STORMY: { skyTop: '#6d7886', skyBottom: '#aeb6be', sun: '#dde4ea', sunIntensity: 1.0, hemiSky: '#dfe5ea', hemiIntensity: 0.85 },
 };
 
+/** Where the sun stands relative to the point the camera looks at. */
+const SUN_OFFSET: [number, number, number] = [36, 60, 22];
+const SHADOW_MAX = 92;
+
 export function Weather() {
+  const { camera, controls, size } = useThree();
   const { mood, stormy } = useMarketVisual();
   const look = LOOKS[stormy ? 'STORMY' : mood];
   const sun = useRef<DirectionalLight>(null);
@@ -53,6 +59,25 @@ export function Weather() {
       sun.current.color.lerp(target.sun.set(look.sun), k);
       sun.current.intensity += (look.sunIntensity - sun.current.intensity) * k;
     }
+    // the shadow box follows the view, so only what you can see (and its neighbours) is drawn into the shadow map
+    const light = sun.current;
+    if (light) {
+      const at = (controls as unknown as { target?: { x: number; z: number } } | null)?.target;
+      const x = at?.x ?? 0;
+      const z = at?.z ?? 0;
+      const r = Math.ceil(shadowRadius(size.width, size.height, (camera as unknown as { zoom: number }).zoom, SHADOW_MAX));
+      light.position.set(x + SUN_OFFSET[0], SUN_OFFSET[1], z + SUN_OFFSET[2]);
+      light.target.position.set(x, 0, z);
+      light.target.updateMatrixWorld();
+      const cam = light.shadow.camera;
+      if (cam.right !== r) {
+        cam.left = -r;
+        cam.right = r;
+        cam.top = r;
+        cam.bottom = -r;
+        cam.updateProjectionMatrix();
+      }
+    }
     if (hemi.current) {
       hemi.current.color.lerp(target.hemi.set(look.hemiSky), k);
       hemi.current.intensity += (look.hemiIntensity - hemi.current.intensity) * k;
@@ -69,12 +94,12 @@ export function Weather() {
         color={LOOKS.NORMAL.sun}
         castShadow
         shadow-mapSize={[4096, 4096]}
-        shadow-camera-left={-62}
-        shadow-camera-right={62}
-        shadow-camera-top={62}
-        shadow-camera-bottom={-62}
+        shadow-camera-left={-92}
+        shadow-camera-right={92}
+        shadow-camera-top={92}
+        shadow-camera-bottom={-92}
         shadow-camera-near={1}
-        shadow-camera-far={200}
+        shadow-camera-far={300}
         shadow-bias={-0.0004}
         shadow-normalBias={0.03}
       />

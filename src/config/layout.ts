@@ -15,7 +15,7 @@ export interface Rect {
   maxZ: number;
 }
 
-export const WORLD_HALF = 44;
+export const WORLD_HALF = 60;
 export const PLAZA_HALF = 7;
 export const RING_OUTER = 9;
 export const AVENUE_HALF = 1;
@@ -23,18 +23,30 @@ export const AVENUE_HALF = 1;
 export const LOT_SIZE = 14;
 const STREET_HALF = 0.8;
 
-/** Street lines in (u, v): the district's edges and the street between its lots. */
-const STREET_LINES = [10, 26, 42];
+/** Street lines in (u, v): the district's edges and the streets between its 3 × 3 cells. */
+const STREET_LINES = [10, 26, 42, 58];
 const DISTRICT_MIN = STREET_LINES[0];
 const DISTRICT_MAX = STREET_LINES[STREET_LINES.length - 1];
 
-/** Lot origins in (u, v): lot 0 nearest the Exchange, then along x, then along z. The 4th cell is the district park. */
+/**
+ * Lot origins in (u, v), nearest the Exchange first. A district is a 3 × 3
+ * grid of cells: eight lots and the park in the far corner. Lots 0–2 sit
+ * where the original three always did.
+ */
 const LOT_UV: [number, number][] = [
   [11, 11],
   [27, 11],
   [11, 27],
+  [43, 11],
+  [27, 27],
+  [11, 43],
+  [43, 27],
+  [27, 43],
 ];
-const PARK_UV: [number, number] = [27, 27];
+const PARK_UV: [number, number] = [43, 43];
+
+/** Number of lots a district has room for. */
+export const LOT_COUNT = LOT_UV.length;
 
 function uvRect(sectorId: SectorId, u0: number, v0: number, u1: number, v1: number): Rect {
   const [sx, sz] = SECTOR_BY_ID[sectorId].quadrant;

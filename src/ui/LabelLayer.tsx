@@ -1,6 +1,7 @@
 import { COMPANY_BY_TICKER, siteTier } from '../config/companies';
 import { LOT_SIZE, lotBackCorner } from '../config/layout';
 import { useCompanyVisual } from '../store/useSimStore';
+import { usePlot } from '../store/useRosterStore';
 import { useWorldStore } from '../store/useWorldStore';
 import { archetypeHeight } from '../world/buildings';
 import { anchorRef } from '../world/labels';
@@ -23,8 +24,10 @@ export function LabelLayer() {
 function Tag({ ticker }: { ticker: string }) {
   const c = COMPANY_BY_TICKER[ticker];
   const { tier } = useCompanyVisual(ticker);
+  const plot = usePlot(ticker);
+  if (plot === null) return null;
   const depth = siteTier(c, tier).depth;
-  const [bx, bz] = lotBackCorner(c.sectorId, c.plot);
+  const [bx, bz] = lotBackCorner(c.sectorId, plot);
   return (
     <div key={tier} ref={anchorRef(`tag-${ticker}`, [bx + LOT_SIZE / 2, archetypeHeight(c.archetype, c.scale) + 0.8, bz + depth / 2])} className="tag" style={{ borderColor: c.accent }}>
       {ticker}

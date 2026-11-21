@@ -238,6 +238,18 @@ body {
   margin-top: 10px;
 }
 
+.swap {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.swap select {
+  font: 500 12px 'Fredoka', system-ui, sans-serif;
+  width: 100%;
+}
+
 .link {
   border: none;
   background: none;

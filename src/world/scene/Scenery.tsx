@@ -2,6 +2,7 @@ import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import type { Group } from 'three';
 import { createRng } from '../../engine/rng';
+import { ROSTER_SIZE } from '../../config/roster';
 import { inflate, mainRoads, overlaps, parkRect, lotRect, districtStreets, center, signSpot, LOT_SIZE, PLAZA_HALF, WORLD_HALF, type Rect } from '../../config/layout';
 import { SECTORS } from '../../config/sectors';
 import { Box, Car, Cyl, Trees, Ball, type Vec3 } from '../kit';
@@ -12,8 +13,8 @@ import { SectorSign } from './SectorSign';
 const TREE_GREENS = ['#4fa83d', '#5cb84a', '#3f9a3a', '#6cc04f'];
 
 function blockedRects(): Rect[] {
-  // Lots are left alone: each company draws its own reserved land and trees.
-  const plots = SECTORS.flatMap((s) => [0, 1, 2].map((i) => lotRect(s.id, i)));
+  // Occupied lots are left alone: each company draws its own reserved land and trees. The spare lots take scenery like any open ground.
+  const plots = SECTORS.flatMap((s) => Array.from({ length: ROSTER_SIZE }, (_, i) => lotRect(s.id, i)));
   const plaza: Rect = { minX: -PLAZA_HALF, maxX: PLAZA_HALF, minZ: -PLAZA_HALF, maxZ: PLAZA_HALF };
   const roads = [...mainRoads(), ...SECTORS.flatMap((s) => districtStreets(s.id))];
   const signs = SECTORS.map((s) => {
@@ -35,7 +36,7 @@ export function Scenery() {
     const blocked = blockedRects();
     const out: { at: Vec3; size: number; color: string }[] = [];
     let tries = 0;
-    while (out.length < 150 && tries < 6000) {
+    while (out.length < 280 && tries < 12000) {
       tries++;
       const x = (rng() * 2 - 1) * (WORLD_HALF - 1);
       const z = (rng() * 2 - 1) * (WORLD_HALF - 1);

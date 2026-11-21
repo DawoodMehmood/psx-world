@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { COMPANY_BY_TICKER, SITE_TIERS } from '../config/companies';
+import { candidatesOf, isDefaultRoster } from '../config/roster';
+import { usePlot, useRosterStore } from '../store/useRosterStore';
 import { SECTOR_BY_ID } from '../config/sectors';
 import { ACTIVITY, DIRECTION, HEALTH, VOLATILITY } from '../engine/types';
 import { useCompany, useSimStore, type Override } from '../store/useSimStore';
@@ -99,8 +101,53 @@ function CompanyCard({ ticker, onClose }: { ticker: string; onClose: () => void 
         </ul>
       </div>
 
+      <ChangeCompany ticker={ticker} />
       <ForceState ticker={ticker} override={override} />
     </aside>
+  );
+}
+
+/**
+ * Swap who stands on this lot: any other company of the same sector. The
+ * choice is yours alone, saved in this browser; the default city is the same
+ * for everyone.
+ */
+function ChangeCompany({ ticker }: { ticker: string }) {
+  const company = COMPANY_BY_TICKER[ticker];
+  const plot = usePlot(ticker);
+  const roster = useRosterStore((s) => s.roster);
+  const place = useRosterStore((s) => s.place);
+  const reset = useRosterStore((s) => s.reset);
+  const select = useWorldStore((s) => s.select);
+  if (plot === null) return null;
+  const custom = !isDefaultRoster(roster);
+  return (
+    <div className="force">
+      <label className="swap">
+        Company on this lot
+        <select
+          value={ticker}
+          onChange={(e) => {
+            place(company.sectorId, plot, e.target.value);
+            select(e.target.value);
+          }}
+        >
+          {candidatesOf(company.sectorId)
+            .slice()
+            .sort((a, b) => b.marketCap - a.marketCap)
+            .map((c) => (
+              <option key={c.ticker} value={c.ticker}>
+                {c.ticker} · {c.name} · Rs {c.marketCap < 10 ? c.marketCap.toFixed(1) : Math.round(c.marketCap)}B{roster[c.sectorId].includes(c.ticker) && c.ticker !== ticker ? ' (on another lot: trade)' : ''}
+              </option>
+            ))}
+        </select>
+      </label>
+      {custom && (
+        <button className="link" onClick={reset}>
+          Back to the default city
+        </button>
+      )}
+    </div>
   );
 }
 
