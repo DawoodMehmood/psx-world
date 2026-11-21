@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef } from 'react';
 import { TICKS_PER_DAY } from '../engine/types';
 import { clockTime, SPEEDS, TICK_MS, useClock, useSimStore } from '../store/useSimStore';
 import { SCENARIOS } from '../sim/scenarios';
+import { useWorldStore } from '../store/useWorldStore';
+import { LabBody } from './LabPanel';
 import { siteNews, siteNewsLine } from './siteNews';
 
 /** Advances the simulation while playing. */
@@ -32,7 +34,7 @@ const ICONS = {
   reset: 'M12 4a8 8 0 1 1-7.4 5h2.2A6 6 0 1 0 12 6v3L7.5 5 12 1z',
 };
 
-/** Bottom bar: day caption, transport controls, speed, scrubber and clock. */
+/** Bottom dock: a Player tab (day caption, transport controls, speed, scrubber and clock) and a Lab tab. */
 export function DemoBar() {
   const { scenario, snapshots, index, playing, speed } = useSimStore();
   const { setPlaying, stepTick, stepDay, setSpeed, setIndex, reset, loadScenario } = useSimStore();
@@ -43,6 +45,8 @@ export function DemoBar() {
     return clock.day > 1 ? siteNewsLine(siteNews(at(clock.day - 1), at(clock.day))) : '';
   }, [snapshots, clock.day]);
   const days = snapshots.length / TICKS_PER_DAY;
+  const lab = useWorldStore((s) => s.showLab);
+  const setLab = useWorldStore((s) => s.setShowLab);
   const bar = useRef<HTMLDivElement>(null);
   // Cards that sit above the bar (company and district cards) read its height from --demo-h, because it grows when its controls wrap.
   useEffect(() => {
@@ -56,7 +60,19 @@ export function DemoBar() {
   }, []);
 
   return (
-    <div className="panel demo" ref={bar}>
+    <div className={`panel demo${lab ? ' lab-open' : ''}`} ref={bar}>
+      <div className="tabs" role="tablist">
+        <button role="tab" aria-selected={!lab} className={lab ? '' : 'on'} onClick={() => setLab(false)}>
+          Player
+        </button>
+        <button role="tab" aria-selected={lab} className={lab ? 'on' : ''} onClick={() => setLab(true)} title="Lab (B)">
+          Lab
+        </button>
+      </div>
+      {lab ? (
+        <LabBody />
+      ) : (
+        <>
       <div className="caption">
         <span className="day">Day {clock.day}</span>
         <span className="note">{[scenario.notes[clock.day], news].filter(Boolean).join(' ')}</span>
@@ -106,6 +122,8 @@ export function DemoBar() {
           <span>Simulated</span>
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 }

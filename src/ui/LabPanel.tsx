@@ -31,14 +31,12 @@ export function useLabKey() {
 }
 
 /**
- * The lab: pick a company, then set any level of the ladder, any stage of its
+ * The lab, as the second tab of the bottom dock: pick a company, then set any level of the ladder, any stage of its
  * construction or wind-down, any health, activity, direction or volatility,
  * and switch on any event, to see exactly how it looks. Step through every
  * state in order with the arrows. Nothing here touches the simulation.
  */
-export function LabPanel() {
-  const show = useWorldStore((s) => s.showLab);
-  const setShow = useWorldStore((s) => s.setShowLab);
+export function LabBody() {
   const selected = useWorldStore((s) => s.selectedTicker);
   const select = useWorldStore((s) => s.select);
   const ticker = selected ?? COMPANIES[0].ticker;
@@ -50,15 +48,20 @@ export function LabPanel() {
   const [step, setStep] = useState(0);
 
   const flyTo = useWorldStore((s) => s.flyTo);
+  // the lab pauses the simulation while it is open and lets it carry on, if it was playing, when you go back to the player
+  useEffect(() => {
+    const wasPlaying = useSimStore.getState().playing;
+    setPlaying(false);
+    return () => {
+      if (wasPlaying) useSimStore.getState().setPlaying(true);
+    };
+  }, [setPlaying]);
   // opening the lab, and every change of company inside it, flies the camera there
   useEffect(() => {
-    if (!show) return;
-    setPlaying(false);
     if (!selected) select(ticker);
     flyTo(ticker);
-  }, [show, selected, ticker, select, setPlaying, flyTo]);
+  }, [selected, ticker, select, flyTo]);
 
-  if (!show) return null;
   const state = applyOverride(raw, override);
   const build: LabBuild = override?.build ?? { level: raw.level, mode: 'idle', q: 0.5 };
   const events = override?.events ?? [];
@@ -82,12 +85,9 @@ export function LabPanel() {
   const ups = state.upgrades.filter((s) => s.stage === 'COMPLETE').length;
 
   return (
-    <aside className="panel info lab" aria-label="Lab">
-      <button className="close" onClick={() => setShow(false)} aria-label="Close lab">
-        ×
-      </button>
-      <h2>Lab</h2>
-      <p className="lab-note">Forces what you pick on the plot. Press B to close. Simulation time is paused.</p>
+    <div className="lab-body" aria-label="Lab">
+      <div className="lab-col">
+      <p className="lab-note">Forces what you pick on the plot. Simulation time is paused; press B to switch tabs.</p>
 
       <label className="lab-row">
         Company
@@ -151,12 +151,14 @@ export function LabPanel() {
         {state.expansion ? ` · enlarging the site (${state.expansion.stage.toLowerCase()})` : ''}
       </p>
 
+      </div>
+      <div className="lab-col">
       <h3>State</h3>
       {ROWS.map((row) => (
         <label className="lab-row" key={row.key}>
           {row.label}
           <select value={override?.[row.key] ?? ''} onChange={(e) => setLevel(row.key, e.target.value)}>
-            <option value="">Simulated ({nice(raw[row.key])})</option>
+            <option value="">Sim: {nice(raw[row.key])}</option>
             {row.levels.map((l) => (
               <option key={l} value={l}>
                 {nice(l)}
@@ -170,6 +172,8 @@ export function LabPanel() {
         <input type="checkbox" checked={!!override?.halted} onChange={(e) => patch({ halted: e.target.checked })} />
       </label>
 
+      </div>
+      <div className="lab-col">
       <h3>Events (stay on until switched off)</h3>
       <div className="lab-chips">
         {LAB_EVENTS.map((t) => (
@@ -182,6 +186,7 @@ export function LabPanel() {
       <button className="link" onClick={() => setOverride(ticker, null)}>
         Back to the simulation
       </button>
-    </aside>
+      </div>
+    </div>
   );
 }

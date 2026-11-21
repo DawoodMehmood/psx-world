@@ -7,7 +7,7 @@ import { LabelLayer } from './ui/LabelLayer';
 import { DemoBar, Playback } from './ui/DemoBar';
 import { Legend, LegendButton } from './ui/Legend';
 import { DistrictPanel } from './ui/DistrictPanel';
-import { LabPanel, useLabKey } from './ui/LabPanel';
+import { useLabKey } from './ui/LabPanel';
 
 export default function App() {
   useLabKey();
@@ -27,7 +27,6 @@ export default function App() {
       <LegendButton />
       <Legend />
       <InfoPanel />
-      <LabPanel />
       <DistrictPanel />
       <OverrideBanner />
       <DemoBar />

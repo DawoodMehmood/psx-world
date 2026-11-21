@@ -265,37 +265,44 @@ body {
   font: 500 12px 'Fredoka', system-ui, sans-serif;
 }
 
-.lab {
-  top: 76px;
-  right: 16px;
-  width: 300px;
-  max-height: calc(100% - 200px);
+.demo .tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.demo .tabs button {
+  height: auto;
+  min-width: 0;
+  padding: 2px 14px;
+  border-radius: 999px;
+  font: 600 12px 'Fredoka', system-ui, sans-serif;
+}
+
+.demo .tabs button.on {
+  background: #ffd23f;
+}
+
+.demo.lab-open {
+  width: min(960px, calc(100% - 32px));
+}
+
+/* The lab is wider than the player: three columns on desktop, one on phones. */
+.lab-body {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px 18px;
+  max-height: 46vh;
   overflow-y: auto;
   font-size: 12px;
 }
 
-.lab h2 {
-  margin: 0 0 2px;
-  font-size: 17px;
-}
-
-.lab h3 {
+.lab h3,
+.lab-body h3 {
   margin: 10px 0 4px;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.6px;
-  color: var(--ink-soft);
-}
-
-.lab .close {
-  position: absolute;
-  top: 6px;
-  right: 8px;
-  border: none;
-  background: none;
-  font-size: 22px;
-  line-height: 1;
-  cursor: pointer;
   color: var(--ink-soft);
 }
 
@@ -313,10 +320,31 @@ body {
   margin-bottom: 4px;
 }
 
+.lab-row {
+  white-space: nowrap;
+}
+
 .lab-row select,
 .lab-row input[type='range'] {
   font: 500 12px 'Fredoka', system-ui, sans-serif;
-  max-width: 62%;
+  flex: 1;
+  min-width: 0;
+  max-width: 70%;
+}
+
+.lab-body .link {
+  display: inline;
+  min-width: 0;
+  height: auto;
+  padding: 0;
+  border: none;
+  background: none;
+  box-shadow: none;
+  text-decoration: underline;
+  text-align: left;
+  font: 600 12px 'Fredoka', system-ui, sans-serif;
+  color: var(--ink-soft);
+  margin: 4px 0;
 }
 
 .lab-tour {
@@ -331,8 +359,12 @@ body {
   font-weight: 600;
 }
 
-.lab-tour button,
-.lab-chips button {
+.lab-body .lab-tour button,
+.lab-body .lab-chips button {
+  display: inline-block;
+  min-width: 0;
+  height: auto;
+  box-shadow: none;
   border: 2px solid var(--edge);
   border-radius: 999px;
   background: #fff;
@@ -349,7 +381,7 @@ body {
   margin-bottom: 8px;
 }
 
-.lab-chips button.on {
+.lab-body .lab-chips button.on {
   background: #ffd23f;
 }
 
@@ -815,8 +847,7 @@ body {
     max-width: calc(100% - 24px);
     white-space: normal;
   }
-  .info,
-  .lab {
+  .info {
     top: auto;
     left: 12px;
     right: 12px;
@@ -855,6 +886,10 @@ body {
   .demo button {
     min-width: 30px;
     height: 32px;
+  }
+  .lab-body {
+    grid-template-columns: 1fr;
+    max-height: 42vh;
   }
   .demo .scrub {
     flex: 1 1 140px;
