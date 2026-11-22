@@ -107,14 +107,21 @@ export function Roof(props: ShapeProps & { w: number; d: number; h: number }) {
   return <mesh geometry={GEO.prism} material={mat(color)} position={[at[0], at[1] + h / 3, at[2]]} scale={[w / 1.732, h / 1.5, d]} castShadow receiveShadow userData={__src ? { src: __src } : undefined} />;
 }
 
+/** A faceted lump, radii `size` around its center `at`: tree crowns, bushes, boulders. */
+export function Blob(props: ShapeProps & { size: Vec3 }) {
+  const { size, at = [0, 0, 0], color, glow, rot, shadow = true, __src } = useDraft(props);
+  return <mesh geometry={GEO.blob} material={mat(color, glow)} position={at} rotation={rot} scale={size} castShadow={shadow} userData={__src ? { src: __src } : undefined} />;
+}
+
 /** Round cartoon tree. */
-export function Tree({ at, size = 1, color = '#4fa83d' }: { at: Vec3; size?: number; color?: string }) {
+export function Tree(props: { at: Vec3; size?: number; color?: string; __src?: string }) {
+  const { at, size = 1, color = '#4fa83d', __src } = useDraft(props);
   return (
-    <group position={at} scale={size}>
+    <group position={at} scale={size} userData={__src ? { src: __src } : undefined}>
       <Static>
         <Cyl r={0.12} h={0.6} color="#8a5a34" low />
-        <mesh geometry={GEO.blob} material={mat(color)} position={[0, 1.05, 0]} scale={[0.6, 0.65, 0.6]} castShadow />
-        <mesh geometry={GEO.blob} material={mat(color)} position={[0.15, 1.45, 0.05]} scale={[0.38, 0.4, 0.38]} rotation={[0.4, 0.6, 0]} castShadow />
+        <Blob size={[0.6, 0.65, 0.6]} at={[0, 1.05, 0]} color={color} />
+        <Blob size={[0.38, 0.4, 0.38]} at={[0.15, 1.45, 0.05]} rot={[0.4, 0.6, 0]} color={color} />
       </Static>
     </group>
   );
@@ -171,9 +178,10 @@ export function Trees({ trees }: { trees: TreeSpec[] }) {
 }
 
 /** Small parked/driving car, nose along +x. */
-export function Car({ color, at = [0, 0, 0], rotY = 0 }: { color: string; at?: Vec3; rotY?: number }) {
+export function Car(props: { color: string; at?: Vec3; rotY?: number; __src?: string }) {
+  const { color, at = [0, 0, 0], rotY = 0, __src } = useDraft(props);
   return (
-    <group position={at} rotation={[0, rotY, 0]}>
+    <group position={at} rotation={[0, rotY, 0]} userData={__src ? { src: __src } : undefined}>
       <Static moving single>
         <Box size={[1.1, 0.35, 0.6]} at={[0, 0.12, 0]} color={color} rounded={0.08} />
         <Box size={[0.6, 0.28, 0.52]} at={[-0.08, 0.45, 0]} color="#dff3ff" rounded={0.06} />

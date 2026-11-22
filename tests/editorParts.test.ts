@@ -129,3 +129,41 @@ describe('duplicating and deleting', () => {
     expect(out).toContain('<group>\n      <Cyl');
   });
 });
+
+describe('placed trees and cars', () => {
+  const PLACED = `export function Yard() {
+  return (
+    <group>
+      <Tree at={[3.4, 0, 9.4]} size={0.8} />
+      <Tree at={[9.9, 0, 9.5]} />
+      <Car color="#d94b3d" at={[1, 0, 1]} rotY={Math.PI / 2} />
+      <Blob size={[0.6, 0.65, 0.6]} at={[0, 1.05, 0]} color={color} />
+    </group>
+  );
+}
+`;
+  it('finds them as parts', () => {
+    expect(listParts(PLACED).map((p) => p.name)).toEqual(['Tree', 'Tree', 'Car', 'Blob']);
+  });
+
+  it('edits a tree\'s size and leaves out a size of 1', () => {
+    expect(applyChanges(PLACED, 0, { size: 1.2 })).toContain('<Tree at={[3.4, 0, 9.4]} size={1.2} />');
+    expect(applyChanges(PLACED, 1, { size: 1, color: '#4fa83d' })).toBe(PLACED);
+    expect(applyChanges(PLACED, 1, { size: 0.7, color: '#3fa66b' })).toContain('<Tree at={[9.9, 0, 9.5]} size={0.7} color="#3fa66b" />');
+  });
+
+  it('writes a car heading as a fraction of pi', () => {
+    expect(applyChanges(PLACED, 2, { rotY: Math.PI })).toContain('rotY={Math.PI}');
+    expect(applyChanges(PLACED, 2, { rotY: -Math.PI / 4 })).toContain('rotY={-Math.PI / 4}');
+    expect(applyChanges(PLACED, 2, { rotY: 0 })).toContain('rotY={0}');
+  });
+
+  it('moves a tree by editing the plain axes of its position', () => {
+    expect(applyChanges(PLACED, 0, { at: [4, null, null] })).toContain('at={[4, 0, 9.4]}');
+  });
+
+  it('shows a computed color as read-only', () => {
+    expect(describePart(PLACED, listParts(PLACED)[3]).attrs.color).toEqual({ kind: 'expr', text: 'color' });
+    expect(() => applyChanges(PLACED, 3, { color: '#fff' })).toThrow(/computed/);
+  });
+});

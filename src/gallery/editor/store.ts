@@ -40,6 +40,8 @@ interface EditorState {
   info: PartInfo | null;
   /** How many meshes in the scene come from the selected element (a part made in a loop has several). */
   copies: number;
+  /** The part that contains the selected one (a tree's crown sits in a Tree), if that has a source of its own. */
+  parent: string | null;
   message: string;
   busy: boolean;
 }
@@ -50,6 +52,7 @@ export const useEditor = create<EditorState>(() => ({
   selected: (saved.selected as string | null) ?? null,
   info: null,
   copies: 0,
+  parent: null,
   message: '',
   busy: false,
 }));
@@ -194,6 +197,9 @@ export const FIELDS: Record<string, Field[]> = {
   Dome: [num('r', 'Radius'), POS, COLOR, GLOW],
   Ball: [num('r', 'Radius'), POS, COLOR, GLOW, SHADOW],
   Roof: [num('w', 'Width'), num('d', 'Depth'), num('h', 'Height'), POS, COLOR],
+  Blob: [{ key: 'size', label: 'Radii (x, y, z)', kind: 'vec', def: [1, 1, 1], step: 0.05, min: 0.01 }, POS, ROT, COLOR, GLOW, SHADOW],
+  Tree: [POS, { key: 'size', label: 'Size', kind: 'num', def: 1, step: 0.05, min: 0.1 }, { key: 'color', label: 'Leaves', kind: 'color', def: '#4fa83d' }],
+  Car: [COLOR, POS, { key: 'rotY', label: 'Heading (°)', kind: 'num', def: 0, step: 5, angle: true }],
 };
 
 export interface Slot {

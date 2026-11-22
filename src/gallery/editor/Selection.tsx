@@ -3,7 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { TransformControls } from '@react-three/drei';
 import { BoxHelper, Euler, Vector3, type Object3D } from 'three';
 import { useDraftStore } from '../../world/editDraft';
-import { FIELDS, readVec, setDraftVec, useEditor } from './store';
+import { FIELDS, readScalar, readVec, setDraft, setDraftVec, useEditor } from './store';
 
 /** True while a gizmo is being dragged (and a moment after), so the click that ends a drag does not count as clicking empty space. */
 export const gizmo = { busy: false };
@@ -57,7 +57,12 @@ export function Selection({ root }: { root: RefObject<Object3D | null> }) {
           return h;
         });
         setTarget(list[0] ?? null);
-        useEditor.setState({ copies: list.length });
+        let parent: string | null = null;
+        for (let n = list[0]?.parent; n && !parent; n = n.parent) {
+          const src = n.userData?.src;
+          if (typeof src === 'string' && src !== selected) parent = src;
+        }
+        useEditor.setState({ copies: list.length, parent });
       }
     }
     helpers.current.forEach((h) => h.update());
@@ -69,9 +74,15 @@ export function Selection({ root }: { root: RefObject<Object3D | null> }) {
     const f = (FIELDS[info.name] ?? []).find((x) => x.key === key);
     return f ? readVec(f, info, draft) : { slots: [] };
   };
+  // a Car turns about y only (its heading), everything else about all three axes; a Tree does not turn
+  const turn = info.name === 'Car' ? 'rotY' : 'rot';
+  const fields = FIELDS[info.name] ?? [];
+  if (mode === 'rotate' && !fields.some((f) => f.key === turn)) return null;
   // a position or rotation computed as a whole in the source cannot be dragged
-  const movable = slotsOf(mode === 'translate' ? 'at' : 'rot').whole === undefined;
-  if (!movable) return null;
+  if (mode === 'translate' ? slotsOf('at').whole !== undefined : turn === 'rot' && slotsOf('rot').whole !== undefined) return null;
+  const heading = fields.find((f) => f.key === 'rotY');
+  const headingOpen = !heading || readScalar(heading, info, draft).editable;
+  if (mode === 'rotate' && turn === 'rotY' && !headingOpen) return null;
 
   return (
     <TransformControls
@@ -93,6 +104,11 @@ export function Selection({ root }: { root: RefObject<Object3D | null> }) {
           target.position.copy(pos);
           const { slots } = slotsOf('at');
           if (delta.length() > 1e-6) setDraftVec('at', slots.map((s, i) => (s.editable ? round(s.value + delta.toArray()[i]) : null)));
+        } else if (turn === 'rotY') {
+          const was = rot.y;
+          const now = target.rotation.y;
+          target.rotation.copy(rot);
+          if (Math.abs(now - was) > 1e-6) setDraft('rotY', round(now));
         } else {
           const now = [target.rotation.x, target.rotation.y, target.rotation.z];
           const before = [rot.x, rot.y, rot.z];

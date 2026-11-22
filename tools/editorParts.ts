@@ -11,8 +11,8 @@ import { parseAst } from 'vite';
  * shifts when a part is added or removed.
  */
 
-/** The kit shapes the editor can pick, move and recolor. */
-export const SHAPES = new Set(['Box', 'Cyl', 'Cone', 'Dome', 'Ball', 'Roof']);
+/** The kit pieces the editor can pick, move and recolor: the six shapes, the Blob crown shape, and the placed Tree and Car. */
+export const SHAPES = new Set(['Box', 'Cyl', 'Cone', 'Dome', 'Ball', 'Roof', 'Blob', 'Tree', 'Car']);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Node = Record<string, any>;
@@ -153,7 +153,7 @@ export function tagParts(code: string, rel: string): string {
 }
 
 /** What a shape draws when an attribute is left out. Writing one of these into the source would only add clutter. */
-const DEFAULTS: Record<string, number | boolean | number[]> = {
+const DEFAULTS: Record<string, number | boolean | string | number[]> = {
   at: [0, 0, 0],
   rot: [0, 0, 0],
   glow: 0,
@@ -162,6 +162,13 @@ const DEFAULTS: Record<string, number | boolean | number[]> = {
   low: false,
   center: false,
 };
+
+/** Defaults that belong to one piece (a Tree is 1 big and leaf green unless told otherwise), checked before the shared ones. */
+const OWN_DEFAULTS: Record<string, Record<string, number | string>> = {
+  Tree: { size: 1, color: '#4fa83d' },
+  Car: { rotY: 0 },
+};
+const defaultOf = (name: string, key: string) => OWN_DEFAULTS[name]?.[key] ?? DEFAULTS[key];
 
 const same = (a: number, b: number) => Math.abs(a - b) < 1e-6;
 
@@ -176,7 +183,7 @@ function fmtAngle(n: number): string {
   return trim(n);
 }
 
-const fmtNum = (key: string, n: number) => (key === 'rot' ? fmtAngle(n) : trim(n));
+const fmtNum = (key: string, n: number) => (key === 'rot' || key === 'rotY' ? fmtAngle(n) : trim(n));
 
 interface Edit {
   start: number;
@@ -200,7 +207,7 @@ export function applyChanges(code: string, index: number, changes: Changes, file
     const attr = findAttr(part, key);
     if (!attr) {
       // leaving an attribute at its default is what leaving it out means
-      const def = DEFAULTS[key];
+      const def = defaultOf(part.name, key);
       const isDefault = Array.isArray(change)
         ? Array.isArray(def) && change.every((v, i) => v === null || same(v, def[i] ?? 0))
         : typeof change === 'number' && typeof def === 'number'
@@ -210,7 +217,7 @@ export function applyChanges(code: string, index: number, changes: Changes, file
       if (Array.isArray(change)) added += ` ${key}={[${change.map((v) => fmtNum(key, v ?? 0)).join(', ')}]}`;
       else if (typeof change === 'string') added += ` ${key}="${change}"`;
       else if (typeof change === 'boolean') added += change ? ` ${key}` : ` ${key}={false}`;
-      else added += ` ${key}={${trim(change)}}`;
+      else added += ` ${key}={${fmtNum(key, change)}}`;
       continue;
     }
     const v = attr.value;
@@ -244,7 +251,7 @@ export function applyChanges(code: string, index: number, changes: Changes, file
     } else {
       const now = expr ? evalConst(expr) : null;
       if (now === null) fail(`is computed (${v ? textOf(code, v) : 'true'})`);
-      if (!same(now!, change)) edits.push({ start: expr!.start, end: expr!.end, text: trim(change) });
+      if (!same(now!, change)) edits.push({ start: expr!.start, end: expr!.end, text: fmtNum(key, change) });
     }
   }
   if (added) {

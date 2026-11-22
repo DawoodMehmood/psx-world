@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useDraftStore } from '../../world/editDraft';
-import { duplicate, FIELDS, readScalar, readVec, redo, remove, revert, save, setDraft, setDraftVec, setEnabled, undo, useEditor, type Field } from './store';
+import { duplicate, FIELDS, select, readScalar, readVec, redo, remove, revert, save, setDraft, setDraftVec, setEnabled, undo, useEditor, type Field } from './store';
 
 const DEG = 180 / Math.PI;
 const clean = (n: number) => +n.toFixed(4);
@@ -78,7 +78,7 @@ function ScalarField({ f, draft, info }: { f: Field; draft?: Record<string, unkn
   return (
     <label className="g-field">
       <span>{f.label}</span>
-      {f.kind === 'num' && <NumInput value={r.value as number} step={f.step} min={f.min} onChange={set} />}
+      {f.kind === 'num' && <NumInput value={f.angle ? (r.value as number) * DEG : (r.value as number)} step={f.step} min={f.min} onChange={(v) => set(f.angle ? v / DEG : v)} />}
       {f.kind === 'color' && <input type="color" value={r.value as string} onChange={(e) => set(e.target.value)} />}
       {f.kind === 'bool' && <input type="checkbox" checked={r.value as boolean} onChange={(e) => set(e.target.checked)} />}
     </label>
@@ -87,7 +87,7 @@ function ScalarField({ f, draft, info }: { f: Field; draft?: Record<string, unkn
 
 /** The editor's panel: switch editing on, then click a part in the view to change it. */
 export function Inspector() {
-  const { enabled, mode, selected, info, copies, message, busy } = useEditor();
+  const { enabled, mode, selected, info, copies, parent, message, busy } = useEditor();
   const drafts = useDraftStore((s) => s.drafts);
   const draft = selected ? drafts[selected] : undefined;
   const dirty = Object.keys(drafts).length;
@@ -101,7 +101,7 @@ export function Inspector() {
       </label>
       {enabled && (
         <div className="g-edit">
-          {!selected && <p className="g-note">Click a box, cylinder, cone, dome, ball or roof. Parts are shown unmerged while editing, so counts above are higher than in the city.</p>}
+          {!selected && <p className="g-note">Click a box, cylinder, cone, dome, ball, roof, blob, tree or car. A click picks the smallest part; use the up arrow to pick what it sits in. Parts are shown unmerged while editing, so counts above are higher than in the city.</p>}
           {selected && !info && <p className="g-note">Loading…</p>}
           {selected && info && (
             <>
@@ -110,6 +110,11 @@ export function Inspector() {
                   {info.name} · {selected.split('#')[0]}:{info.line}
                 </code>
               </div>
+              {parent && (
+                <button className="g-btn" onClick={() => void select(parent)} title={`Select the part this one sits in (${parent})`}>
+                  ↑ Select the enclosing part
+                </button>
+              )}
               {copies > 1 && <p className="g-note">Used {copies} times here: an edit applies to every copy.</p>}
               <div className="g-seg">
                 <span>Gizmo</span>
