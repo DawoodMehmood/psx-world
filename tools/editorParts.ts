@@ -152,6 +152,19 @@ export function tagParts(code: string, rel: string): string {
   return out;
 }
 
+/** What a shape draws when an attribute is left out. Writing one of these into the source would only add clutter. */
+const DEFAULTS: Record<string, number | boolean | number[]> = {
+  at: [0, 0, 0],
+  rot: [0, 0, 0],
+  glow: 0,
+  shadow: true,
+  rounded: 0,
+  low: false,
+  center: false,
+};
+
+const same = (a: number, b: number) => Math.abs(a - b) < 1e-6;
+
 const trim = (n: number) => String(+n.toFixed(4));
 
 /** An angle in radians, written as a fraction of pi when it is a plain one (Math.PI / 2), else as a number. */
@@ -186,6 +199,14 @@ export function applyChanges(code: string, index: number, changes: Changes, file
   for (const [key, change] of Object.entries(changes)) {
     const attr = findAttr(part, key);
     if (!attr) {
+      // leaving an attribute at its default is what leaving it out means
+      const def = DEFAULTS[key];
+      const isDefault = Array.isArray(change)
+        ? Array.isArray(def) && change.every((v, i) => v === null || same(v, def[i] ?? 0))
+        : typeof change === 'number' && typeof def === 'number'
+          ? same(change, def)
+          : change === def;
+      if (isDefault) continue;
       if (Array.isArray(change)) added += ` ${key}={[${change.map((v) => fmtNum(key, v ?? 0)).join(', ')}]}`;
       else if (typeof change === 'string') added += ` ${key}="${change}"`;
       else if (typeof change === 'boolean') added += change ? ` ${key}` : ` ${key}={false}`;
@@ -203,21 +224,27 @@ export function applyChanges(code: string, index: number, changes: Changes, file
         if (val === null) return;
         const el = expr!.elements[i];
         if (!el) fail(`has no entry ${i}`);
-        if (evalConst(el) === null) fail(`entry ${i} is computed (${textOf(code, el)})`);
+        const now = evalConst(el);
+        if (now === null) fail(`entry ${i} is computed (${textOf(code, el)})`);
+        if (same(now!, val)) return;
         edits.push({ start: el.start, end: el.end, text: fmtNum(key, val) });
       });
     } else if (typeof change === 'string') {
-      if (v && v.type === 'Literal' && typeof v.value === 'string') edits.push({ start: v.start, end: v.end, text: `"${change}"` });
-      else if (expr && expr.type === 'Literal' && typeof expr.value === 'string') edits.push({ start: expr.start, end: expr.end, text: `"${change}"` });
-      else fail(`is computed (${v ? textOf(code, v) : 'true'})`);
+      if (v && v.type === 'Literal' && typeof v.value === 'string') {
+        if (v.value !== change) edits.push({ start: v.start, end: v.end, text: `"${change}"` });
+      } else if (expr && expr.type === 'Literal' && typeof expr.value === 'string') {
+        if (expr.value !== change) edits.push({ start: expr.start, end: expr.end, text: `"${change}"` });
+      } else fail(`is computed (${v ? textOf(code, v) : 'true'})`);
     } else if (typeof change === 'boolean') {
       if (v === null) {
         if (!change) edits.push({ start: attr.start, end: attr.end, text: `${key}={false}` });
-      } else if (expr && expr.type === 'Literal' && typeof expr.value === 'boolean') edits.push({ start: expr.start, end: expr.end, text: String(change) });
-      else fail(`is computed (${textOf(code, v)})`);
+      } else if (expr && expr.type === 'Literal' && typeof expr.value === 'boolean') {
+        if (expr.value !== change) edits.push({ start: expr.start, end: expr.end, text: String(change) });
+      } else fail(`is computed (${textOf(code, v)})`);
     } else {
-      if (!expr || evalConst(expr) === null) fail(`is computed (${v ? textOf(code, v) : 'true'})`);
-      edits.push({ start: expr!.start, end: expr!.end, text: trim(change) });
+      const now = expr ? evalConst(expr) : null;
+      if (now === null) fail(`is computed (${v ? textOf(code, v) : 'true'})`);
+      if (!same(now!, change)) edits.push({ start: expr!.start, end: expr!.end, text: trim(change) });
     }
   }
   if (added) {

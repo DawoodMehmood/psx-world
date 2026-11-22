@@ -84,6 +84,23 @@ describe('editing in place', () => {
     expect(applyChanges(SRC, 2, { shadow: true })).toContain('shadow={true}');
   });
 
+  it('writes nothing for a value the source already has', () => {
+    expect(applyChanges(SRC, 0, { size: [2, 3, null], color: '#ff0000' })).toBe(SRC);
+    expect(applyChanges(SRC, 1, { center: true, r: 0.5 })).toBe(SRC);
+    expect(applyChanges(SRC, 2, { shadow: false })).toBe(SRC);
+  });
+
+  it('writes nothing for a default on an attribute that is not there', () => {
+    expect(applyChanges(SRC, 1, { at: [0, 0, 0], glow: 0, shadow: true, low: false })).toBe(SRC);
+    expect(applyChanges(SRC, 1, { at: [null, 0, null] })).toBe(SRC);
+    expect(applyChanges(SRC, 1, { center: false, low: false })).toContain('center={false}');
+    expect(applyChanges(SRC, 1, { center: false, low: false })).not.toContain('low');
+  });
+
+  it('still writes a whole vector when only one axis leaves the default', () => {
+    expect(applyChanges(SRC, 1, { at: [null, 0.5, null] })).toContain('at={[0, 0.5, 0]}');
+  });
+
   it('edits every copy of a part in a loop by editing the one element', () => {
     expect(applyChanges(SRC, 2, { color: '#123456' })).toContain('<Box key={i} size={[1, 1, 1]} color="#123456"');
   });

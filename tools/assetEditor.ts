@@ -80,14 +80,20 @@ export function assetEditor(): Plugin {
           if (!byFile.has(abs)) byFile.set(abs, { path, list: [] });
           byFile.get(abs)!.list.push({ index, changes: e.changes });
         }
+        let changed = 0;
         for (const [abs, { path, list }] of byFile) {
           const before = readFileSync(abs, 'utf8');
           let code = before;
           // each edit is checked against the file as it stands, so a refusal leaves everything untouched
-          for (const e of list) code = applyChanges(code, e.index, e.changes, abs);
+          for (const e of list) {
+            const next = applyChanges(code, e.index, e.changes, abs);
+            if (next !== code) changed += 1;
+            code = next;
+          }
+          // values that already match the source, or the shape's default, write nothing
           if (code !== before) write(abs, before, code, `${list.length} edit${list.length === 1 ? '' : 's'} in ${path}`);
         }
-        return send(200, { ok: true });
+        return send(200, { ok: true, changed });
       }
       if (route === 'duplicate') {
         const { abs, index, path } = resolveId(b.id as string);

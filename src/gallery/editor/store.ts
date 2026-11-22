@@ -145,8 +145,8 @@ export const save = () =>
   run(async () => {
     const edits = Object.entries(drafts()).map(([id, changes]) => ({ id, changes }));
     if (!edits.length) return 'Nothing to save';
-    await call('save', { edits });
-    return `Saved ${edits.length} part${edits.length === 1 ? '' : 's'} to the source`;
+    const { changed } = await call<{ changed: number }>('save', { edits });
+    return changed ? `Saved ${changed} part${changed === 1 ? '' : 's'} to the source` : 'Nothing to save: the source already has these values';
   });
 
 export const duplicate = () =>
