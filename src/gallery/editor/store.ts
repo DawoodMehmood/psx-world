@@ -245,6 +245,17 @@ export const FIELDS: Record<string, Field[]> = {
   Blob: [{ key: 'size', label: 'Radii (x, y, z)', kind: 'vec', def: [1, 1, 1], step: 0.05, min: 0.01 }, POS, ROT, COLOR, GLOW, SHADOW],
   Tree: [POS, { key: 'size', label: 'Size', kind: 'num', def: 1, step: 0.05, min: 0.1 }, { key: 'color', label: 'Leaves', kind: 'color', def: '#4fa83d' }],
   Car: [COLOR, POS, { key: 'rotY', label: 'Heading (°)', kind: 'num', def: 0, step: 5, angle: true }],
+  BayVehicles: [
+    { key: 'speed', label: 'Trips per clock unit', kind: 'num', def: 0.05, step: 0.005, min: 0 },
+    { key: 'stagger', label: 'Gap between bays (trip)', kind: 'num', def: 0.37, step: 0.01, min: 0 },
+    { key: 'arriveEnd', label: 'Arrived by (trip)', kind: 'num', def: 0.3, step: 0.05, min: 0.01 },
+    { key: 'departStart', label: 'Leaves at (trip)', kind: 'num', def: 0.6, step: 0.05, min: 0 },
+    { key: 'departEnd', label: 'Gone by (trip)', kind: 'num', def: 0.9, step: 0.05, min: 0.01 },
+  ],
+  CashVan: [{ key: 'stripe', label: 'Stripe', kind: 'color', def: '#2f8f5b' }],
+  Van: [{ key: 'color', label: 'Stripe', kind: 'color', def: '#2c5fb8' }],
+  Tanker: [{ key: 'cab', label: 'Cab', kind: 'color', def: '#e0682b' }],
+  MixerTruck: [{ key: 'cab', label: 'Cab', kind: 'color', def: '#f2b632' }],
   BayLines: [
     { key: 'z', label: 'Bay position (z)', kind: 'num', def: 0, step: 0.05 },
     { key: 'color', label: 'Line color', kind: 'color', def: '#f2c94c' },

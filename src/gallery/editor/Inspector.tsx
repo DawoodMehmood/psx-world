@@ -152,7 +152,7 @@ export function Inspector() {
       </label>
       {enabled && (
         <div className="g-edit">
-          {!selected && <p className="g-note">Click a box, cylinder, cone, dome, ball, roof, blob, tree, car, a wall of windows or a bay's lines or cones. A click picks the smallest part; use the up arrow to pick what it sits in. Parts are shown unmerged while editing, so counts above are higher than in the city.</p>}
+          {!selected && <p className="g-note">Click a box, cylinder, cone, dome, ball, roof, blob, tree, car, a wall of windows, a bay's lines or cones, or a vehicle (and the fleet that drives them). A click picks the smallest part; use the up arrow to pick what it sits in. Parts are shown unmerged while editing, so counts above are higher than in the city.</p>}
           {selected && !info && <p className="g-note">Loading…</p>}
           {selected && info && (
             <>

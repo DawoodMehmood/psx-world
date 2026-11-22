@@ -4,6 +4,7 @@ import type { Group } from 'three';
 import { Ball, Box, Cyl, Dome } from './kit';
 import { Static } from './Static';
 import { agentCount, useMotion } from './motion';
+import { useDraft } from './editDraft';
 
 const HELMETS = ['#ffcf3a', '#ffffff', '#ff8a2a'];
 
@@ -76,14 +77,15 @@ export function Workers({ lanes, max, min = 0, office = false }: { lanes: Lane[]
 }
 
 /** Cement mixer truck, nose along +x. The drum turns with the plot's motion clock. */
-export function MixerTruck({ cab = '#f2b632' }: { cab?: string }) {
+export function MixerTruck(props: { cab?: string; __src?: string }) {
+  const { cab = '#f2b632', __src } = useDraft(props);
   const motion = useMotion();
   const drum = useRef<Group>(null);
   useFrame(() => {
     if (drum.current) drum.current.rotation.x = motion.t * 2.5;
   });
   return (
-    <group>
+    <group userData={__src ? { src: __src } : undefined}>
       <Static moving single>
         <Box size={[2.2, 0.35, 0.8]} at={[0, 0.2, 0]} color="#5a544d" />
         <Box size={[0.65, 0.75, 0.8]} at={[0.85, 0.5, 0]} color={cab} rounded={0.08} />
@@ -105,46 +107,55 @@ export function MixerTruck({ cab = '#f2b632' }: { cab?: string }) {
 }
 
 /** Armoured cash van, nose along +x, with a stripe in the bank's color. */
-export function CashVan({ stripe }: { stripe: string }) {
+export function CashVan(props: { stripe: string; __src?: string }) {
+  const { stripe, __src } = useDraft(props);
   return (
-    <Static moving single>
-      <Box size={[1.7, 0.95, 0.8]} at={[-0.15, 0.18, 0]} color="#8c99a6" rounded={0.08} />
-      <Box size={[1.72, 0.14, 0.82]} at={[-0.15, 0.6, 0]} color={stripe} shadow={false} />
-      <Box size={[0.5, 0.7, 0.8]} at={[0.85, 0.18, 0]} color="#7a8794" rounded={0.08} />
-      <Box size={[0.06, 0.28, 0.62]} at={[1.1, 0.55, 0]} color="#cfe9f7" shadow={false} />
-      {[-0.6, 0.75].map((x) => (
-        <Cyl key={x} r={0.18} h={0.86} at={[x, 0.18, 0]} rot={[Math.PI / 2, 0, 0]} color="#2c2c34" low center shadow={false} />
-      ))}
-    </Static>
+    <group userData={__src ? { src: __src } : undefined}>
+      <Static moving single>
+        <Box size={[1.7, 0.95, 0.8]} at={[-0.15, 0.18, 0]} color="#8c99a6" rounded={0.08} />
+        <Box size={[1.72, 0.14, 0.82]} at={[-0.15, 0.6, 0]} color={stripe} shadow={false} />
+        <Box size={[0.5, 0.7, 0.8]} at={[0.85, 0.18, 0]} color="#7a8794" rounded={0.08} />
+        <Box size={[0.06, 0.28, 0.62]} at={[1.1, 0.55, 0]} color="#cfe9f7" shadow={false} />
+        {[-0.6, 0.75].map((x) => (
+          <Cyl key={x} r={0.18} h={0.86} at={[x, 0.18, 0]} rot={[Math.PI / 2, 0, 0]} color="#2c2c34" low center shadow={false} />
+        ))}
+      </Static>
+    </group>
   );
 }
 
 /** Small courier van, nose along +x. */
-export function Van({ color }: { color: string }) {
+export function Van(props: { color: string; __src?: string }) {
+  const { color, __src } = useDraft(props);
   return (
-    <Static moving single>
-      <Box size={[1.5, 0.8, 0.72]} at={[-0.1, 0.16, 0]} color="#f4f4f6" rounded={0.1} />
-      <Box size={[1.52, 0.16, 0.74]} at={[-0.1, 0.45, 0]} color={color} shadow={false} />
-      <Box size={[0.06, 0.28, 0.58]} at={[0.66, 0.6, 0]} color="#cfe9f7" shadow={false} />
-      {[-0.5, 0.42].map((x) => (
-        <Cyl key={x} r={0.16} h={0.78} at={[x, 0.16, 0]} rot={[Math.PI / 2, 0, 0]} color="#2c2c34" low center shadow={false} />
-      ))}
-    </Static>
+    <group userData={__src ? { src: __src } : undefined}>
+      <Static moving single>
+        <Box size={[1.5, 0.8, 0.72]} at={[-0.1, 0.16, 0]} color="#f4f4f6" rounded={0.1} />
+        <Box size={[1.52, 0.16, 0.74]} at={[-0.1, 0.45, 0]} color={color} shadow={false} />
+        <Box size={[0.06, 0.28, 0.58]} at={[0.66, 0.6, 0]} color="#cfe9f7" shadow={false} />
+        {[-0.5, 0.42].map((x) => (
+          <Cyl key={x} r={0.16} h={0.78} at={[x, 0.16, 0]} rot={[Math.PI / 2, 0, 0]} color="#2c2c34" low center shadow={false} />
+        ))}
+      </Static>
+    </group>
   );
 }
 
 /** Tanker truck, nose along +x. */
-export function Tanker({ cab }: { cab: string }) {
+export function Tanker(props: { cab: string; __src?: string }) {
+  const { cab, __src } = useDraft(props);
   return (
-    <Static moving single>
-      <Box size={[2.2, 0.3, 0.8]} at={[0, 0.2, 0]} color="#5a544d" />
-      <Box size={[0.6, 0.75, 0.8]} at={[0.85, 0.45, 0]} color={cab} rounded={0.08} />
-      <Box size={[0.08, 0.3, 0.6]} at={[1.16, 0.8, 0]} color="#cfe9f7" shadow={false} />
-      <Cyl r={0.4} h={1.45} at={[-0.35, 0.92, 0]} rot={[0, 0, Math.PI / 2]} color="#e8e6e1" center />
-      <Cyl r={0.41} h={0.12} at={[-0.35, 0.92, 0]} rot={[0, 0, Math.PI / 2]} color={cab} center shadow={false} />
-      {[-0.7, 0.85].map((x) => (
-        <Cyl key={x} r={0.2} h={0.9} at={[x, 0.2, 0]} rot={[Math.PI / 2, 0, 0]} color="#2c2c34" low center shadow={false} />
-      ))}
-    </Static>
+    <group userData={__src ? { src: __src } : undefined}>
+      <Static moving single>
+        <Box size={[2.2, 0.3, 0.8]} at={[0, 0.2, 0]} color="#5a544d" />
+        <Box size={[0.6, 0.75, 0.8]} at={[0.85, 0.45, 0]} color={cab} rounded={0.08} />
+        <Box size={[0.08, 0.3, 0.6]} at={[1.16, 0.8, 0]} color="#cfe9f7" shadow={false} />
+        <Cyl r={0.4} h={1.45} at={[-0.35, 0.92, 0]} rot={[0, 0, Math.PI / 2]} color="#e8e6e1" center />
+        <Cyl r={0.41} h={0.12} at={[-0.35, 0.92, 0]} rot={[0, 0, Math.PI / 2]} color={cab} center shadow={false} />
+        {[-0.7, 0.85].map((x) => (
+          <Cyl key={x} r={0.2} h={0.9} at={[x, 0.2, 0]} rot={[Math.PI / 2, 0, 0]} color="#2c2c34" low center shadow={false} />
+        ))}
+      </Static>
+    </group>
   );
 }

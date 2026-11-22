@@ -242,3 +242,31 @@ describe('bay parts', () => {
     expect(() => applyChanges(BAYS, 0, { z: 2 })).toThrow(/computed/);
   });
 });
+
+describe('bay vehicles', () => {
+  const FLEET = `export function Yard({ open, accent }: P) {
+  return (
+    <group>
+      <BayVehicles bays={open} vehicle={(i) => (i === 0 ? <CashVan stripe={accent} /> : <Van color="#2c5fb8" />)} />
+      <MixerTruck />
+    </group>
+  );
+}
+`;
+  it('lists the fleet and its vehicles, even the ones inside the vehicle function', () => {
+    expect(listParts(FLEET).map((p) => [p.name, p.canStructure])).toEqual([['BayVehicles', true], ['CashVan', false], ['Van', false], ['MixerTruck', true]]);
+  });
+
+  it('adds the motion settings that are not there, skipping defaults', () => {
+    expect(applyChanges(FLEET, 0, { speed: 0.12 })).toContain('/>)} speed={0.12} />');
+    expect(applyChanges(FLEET, 0, { speed: 0.05, stagger: 0.37, arriveEnd: 0.3 })).toBe(FLEET);
+    expect(applyChanges(FLEET, 0, { departStart: 0.5, departEnd: 0.95 })).toContain('departStart={0.5} departEnd={0.95}');
+  });
+
+  it('recolors a van, refuses a computed stripe, and sets a truck cab that has no attribute yet', () => {
+    expect(applyChanges(FLEET, 2, { color: '#ff0000' })).toContain('<Van color="#ff0000" />');
+    expect(() => applyChanges(FLEET, 1, { stripe: '#fff' })).toThrow(/computed/);
+    expect(applyChanges(FLEET, 3, { cab: '#336699' })).toContain('<MixerTruck cab="#336699" />');
+    expect(applyChanges(FLEET, 3, { cab: '#f2b632' })).toBe(FLEET);
+  });
+});

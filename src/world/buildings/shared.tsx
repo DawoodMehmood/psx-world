@@ -152,7 +152,21 @@ export function Weeds({ depth, seed, colors = ['#79a845', '#8fbd52', '#6a9a3c'] 
  * (nose toward the street, +x). How many are on the move follows Activity;
  * when quiet, one waits parked in the first bay.
  */
-export function BayVehicles({ bays, vehicle }: { bays: number[]; vehicle: (i: number) => ReactNode }) {
+export function BayVehicles(props: {
+  bays: number[];
+  vehicle: (i: number) => ReactNode;
+  /** Trips per unit of the plot's motion clock. */
+  speed?: number;
+  /** How far apart in the trip neighbouring bays' vehicles run, as a share of it. */
+  stagger?: number;
+  /** The trip as shares of it: arriving until `arriveEnd`, parked until `departStart`, leaving until `departEnd`, then out of sight until the next trip. */
+  arriveEnd?: number;
+  departStart?: number;
+  departEnd?: number;
+  /** Dev only: where this element is written, put there by the asset editor's Vite plugin. */
+  __src?: string;
+}) {
+  const { bays, vehicle, speed = 0.05, stagger = 0.37, arriveEnd = 0.3, departStart = 0.6, departEnd = 0.9, __src } = useDraft(props);
   const motion = useMotion();
   const refs = useRef<(Group | null)[]>([]);
   useFrame(() => {
@@ -165,18 +179,19 @@ export function BayVehicles({ bays, vehicle }: { bays: number[]; vehicle: (i: nu
         return;
       }
       g.visible = i < moving;
-      const p = (motion.t * 0.05 + i * 0.37) % 1;
+      const p = (motion.t * speed + i * stagger) % 1;
       const ease = (f: number) => f * f * (3 - 2 * f);
       let x = STREET_X;
-      if (p < 0.3) x = STREET_X + (DOCK_X - STREET_X) * ease(p / 0.3);
-      else if (p < 0.6) x = DOCK_X;
-      else if (p < 0.9) x = DOCK_X + (STREET_X - DOCK_X) * ease((p - 0.6) / 0.3);
+      if (p < arriveEnd) x = STREET_X + (DOCK_X - STREET_X) * ease(p / Math.max(arriveEnd, 1e-3));
+      else if (p < departStart) x = DOCK_X;
+      else if (p < departEnd) x = DOCK_X + (STREET_X - DOCK_X) * ease((p - departStart) / Math.max(departEnd - departStart, 1e-3));
       else g.visible = false;
       g.position.x = x;
     });
   });
   return (
-    <>
+    // one group carries the source id, so the editor picks the whole fleet of a site as one element
+    <group userData={__src ? { src: __src } : undefined}>
       {bays.map((z, i) => (
         <group
           key={z}
@@ -188,7 +203,7 @@ export function BayVehicles({ bays, vehicle }: { bays: number[]; vehicle: (i: nu
           {vehicle(i)}
         </group>
       ))}
-    </>
+    </group>
   );
 }
 

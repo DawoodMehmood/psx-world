@@ -11,8 +11,8 @@ import { parseAst } from 'vite';
  * shifts when a part is added or removed.
  */
 
-/** The kit pieces the editor can pick, move and recolor: the six shapes, the Blob crown shape, and the placed Tree, Car, wall of windows and the painted and coned-off parts of a vehicle bay. */
-export const SHAPES = new Set(['Box', 'Cyl', 'Cone', 'Dome', 'Ball', 'Roof', 'Blob', 'Tree', 'Car', 'ActivityWindows', 'BayLines', 'ClosedBay']);
+/** The kit pieces the editor can pick, move and recolor: the six shapes, the Blob crown shape, and the placed Tree, Car, wall of windows and the painted and coned-off parts of a vehicle bay, and the vehicles that use them. */
+export const SHAPES = new Set(['Box', 'Cyl', 'Cone', 'Dome', 'Ball', 'Roof', 'Blob', 'Tree', 'Car', 'ActivityWindows', 'BayLines', 'ClosedBay', 'BayVehicles', 'CashVan', 'Van', 'Tanker', 'MixerTruck']);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Node = Record<string, any>;
@@ -167,6 +167,8 @@ const DEFAULTS: Record<string, number | boolean | string | number[]> = {
 const OWN_DEFAULTS: Record<string, Record<string, number | string | boolean>> = {
   Tree: { size: 1, color: '#4fa83d' },
   Car: { rotY: 0 },
+  MixerTruck: { cab: '#f2b632' },
+  BayVehicles: { speed: 0.05, stagger: 0.37, arriveEnd: 0.3, departStart: 0.6, departEnd: 0.9 },
   BayLines: { color: '#f2c94c' },
   ClosedBay: { x: 13.95 },
   ActivityWindows: { floorHeight: 1, baseHeight: 0.6, cols: 3, seed: 1, litColor: '#ffe27a', darkColor: '#5b6f86', closed: false },
