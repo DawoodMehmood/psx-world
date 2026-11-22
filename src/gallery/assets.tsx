@@ -5,7 +5,7 @@ import { ToLet } from '../world/buildings/shared';
 import { Scaffold, TowerCrane } from '../world/construction/ConstructionSlot';
 import { LightPool } from '../world/effects/LightPool';
 import { CashVan, MixerTruck, OfficeWorker, Tanker, Van, Worker } from '../world/agents';
-import { Box, Car, Tree } from '../world/kit';
+import { Box, Car, Tree, Trees, type TreeSpec } from '../world/kit';
 import { Static } from '../world/Static';
 import { COMPANIES, SITE_TIERS, type Archetype } from '../config/companies';
 import { SECTOR_BY_ID } from '../config/sectors';
@@ -105,6 +105,13 @@ const siteAsset = (archetype: Archetype): AssetDef => ({
   scope: true,
   render: (_v, ctx) => <SitePreview archetype={archetype} ctx={ctx} />,
 });
+
+/** A small stand of trees on a grid, in the greens the scenery uses, drawn the way the city draws its forest (instanced). */
+const FOREST: TreeSpec[] = Array.from({ length: 25 }, (_, i) => ({
+  at: [(i % 5) * 2.2 - 4.4, 0, Math.floor(i / 5) * 2.2 - 4.4],
+  size: 0.75 + ((i * 7) % 5) * 0.1,
+  color: ['#4fa83d', '#5cb84a', '#3f9a3a', '#6cc04f'][i % 4],
+}));
 
 export const ASSETS: AssetDef[] = [
   siteAsset('bank'),
@@ -229,6 +236,15 @@ export const ASSETS: AssetDef[] = [
       { key: 'color', label: 'Leaves', type: 'color', def: '#4fa83d' },
     ],
     render: (v) => <Tree at={[0, 0, 0]} size={num(v, 'size')} color={str(v, 'color')} />,
+  },
+  {
+    id: 'forest',
+    name: 'Forest (instanced trees)',
+    group: 'Props',
+    file: '/src/world/kit.tsx',
+    symbol: 'Trees',
+    // the same tree model as above, so editing a tree here (trunk, crowns) changes every tree in the city's forest
+    render: () => <Trees trees={FOREST} />,
   },
   {
     id: 'to-let',

@@ -35,3 +35,6 @@ const useDraftDev = <T extends { __src?: string }>(props: T): T => {
 
 /** A shape calls this with its props. Outside dev it is a plain pass-through that costs nothing. */
 export const useDraft: <T extends { __src?: string }>(props: T) => T = import.meta.env.DEV ? useDraftDev : (p) => p;
+
+/** Changes whenever any unsaved edit does, so something built from shapes (the instanced forest) can read them again. Constant outside dev. */
+export const useDraftsVersion: () => unknown = import.meta.env.DEV ? () => useDraftStore((s) => s.drafts) : () => null;

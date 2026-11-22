@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { TransformControls } from '@react-three/drei';
-import { BoxHelper, Euler, Vector3, type Object3D } from 'three';
+import { BoxHelper, Euler, Vector3, type InstancedMesh, type Object3D } from 'three';
 import { useDraftStore } from '../../world/editDraft';
 import { FIELDS, readScalar, readVec, setDraft, setDraftVec, useEditor } from './store';
 
@@ -15,6 +15,12 @@ export function srcOf(o: Object3D | null): string | null {
 }
 
 const round = (n: number) => +n.toFixed(4);
+
+/** Not inside a hidden group (the instanced forest keeps its tree model in one, to read from). */
+const shown = (o: Object3D) => {
+  for (let n: Object3D | null = o; n; n = n.parent) if (!n.visible) return false;
+  return true;
+};
 
 /**
  * Outlines every mesh drawn from the selected element (a part made in a loop
@@ -46,23 +52,26 @@ export function Selection({ root }: { root: RefObject<Object3D | null> }) {
     const r = root.current;
     if (frames.current++ % 5 === 0) {
       const list: Object3D[] = [];
-      if (selected && r) r.traverse((o) => o.userData?.src === selected && list.push(o));
+      if (selected && r) r.traverse((o) => o.userData?.src === selected && shown(o) && list.push(o));
       const same = list.length === found.current.length && list.every((o, i) => o === found.current[i]);
       if (!same) {
         found.current = list;
         clear();
-        helpers.current = list.map((o) => {
+        // the instanced forest is one mesh for hundreds of trees: no outline round it all, and no gizmo (it would move the whole forest)
+        const solid = list.filter((o) => !o.userData.instanced);
+        helpers.current = solid.map((o) => {
           const h = new BoxHelper(o, 0xffd23f);
           scene.add(h);
           return h;
         });
-        setTarget(list[0] ?? null);
+        setTarget(solid[0] ?? null);
         let parent: string | null = null;
-        for (let n = list[0]?.parent; n && !parent; n = n.parent) {
+        for (let n = (solid[0] ?? list[0])?.parent; n && !parent; n = n.parent) {
           const src = n.userData?.src;
           if (typeof src === 'string' && src !== selected) parent = src;
         }
-        useEditor.setState({ copies: list.length, parent });
+        const copies = list.reduce((n, o) => n + ((o as InstancedMesh).isInstancedMesh ? (o as InstancedMesh).count : 1), 0);
+        useEditor.setState({ copies, parent, instancedOnly: list.length > 0 && solid.length === 0 });
       }
     }
     helpers.current.forEach((h) => h.update());

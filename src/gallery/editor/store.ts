@@ -42,6 +42,8 @@ interface EditorState {
   copies: number;
   /** The part that contains the selected one (a tree's crown sits in a Tree), if that has a source of its own. */
   parent: string | null;
+  /** Everything picked is part of the instanced forest, so there is no single mesh to put a gizmo on. */
+  instancedOnly: boolean;
   message: string;
   busy: boolean;
 }
@@ -53,6 +55,7 @@ export const useEditor = create<EditorState>(() => ({
   info: null,
   copies: 0,
   parent: null,
+  instancedOnly: false,
   message: '',
   busy: false,
 }));

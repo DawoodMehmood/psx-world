@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import { RoundedBox } from '@react-three/drei';
-import { useLayoutEffect, useRef, type ReactNode } from 'react';
+import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { Static } from './Static';
-import { useDraft } from './editDraft';
+import { useDraft, useDraftsVersion } from './editDraft';
+import { collectParts, partsSignature, type InstancePart } from './instances';
 
 /**
  * Low-poly building kit. Every shape shares a unit geometry and a cached
@@ -113,15 +114,24 @@ export function Blob(props: ShapeProps & { size: Vec3 }) {
   return <mesh geometry={GEO.blob} material={mat(color, glow)} position={at} rotation={rot} scale={size} castShadow={shadow} userData={__src ? { src: __src } : undefined} />;
 }
 
+/** One tree's shapes. `Tree` draws it, and the instanced forest (`Trees`) reads it to build its instances, so editing it changes both. */
+function TreeModel({ color }: { color: string }) {
+  return (
+    <>
+      <Cyl r={0.12} h={0.6} color="#8a5a34" low />
+      <Blob size={[0.6, 0.65, 0.6]} at={[0, 1.05, 0]} color={color} />
+      <Blob size={[0.38, 0.4, 0.38]} at={[0.15, 1.45, 0.05]} rot={[0.4, 0.6, 0]} color={color} />
+    </>
+  );
+}
+
 /** Round cartoon tree. */
 export function Tree(props: { at: Vec3; size?: number; color?: string; __src?: string }) {
   const { at, size = 1, color = '#4fa83d', __src } = useDraft(props);
   return (
     <group position={at} scale={size} userData={__src ? { src: __src } : undefined}>
       <Static>
-        <Cyl r={0.12} h={0.6} color="#8a5a34" low />
-        <Blob size={[0.6, 0.65, 0.6]} at={[0, 1.05, 0]} color={color} />
-        <Blob size={[0.38, 0.4, 0.38]} at={[0.15, 1.45, 0.05]} rot={[0.4, 0.6, 0]} color={color} />
+        <TreeModel color={color} />
       </Static>
     </group>
   );
@@ -134,45 +144,68 @@ export interface TreeSpec {
 }
 
 /**
- * Many static trees as three instanced meshes (trunks, lower crowns, upper crowns)
- * instead of three meshes per tree. Same shapes as `Tree`. Per-tree color goes in
- * instance colors over a white material.
+ * Many static trees as instanced meshes (one per part of the tree model: trunk and
+ * two crowns) instead of three meshes per tree. The model is a real `TreeModel`
+ * drawn off-screen, so the forest always matches `Tree` and follows edits to it.
+ * A part that was drawn with the white tint material takes each tree's color
+ * (instance colors over a white material); the others keep their own.
  */
 export function Trees({ trees }: { trees: TreeSpec[] }) {
-  const trunks = useRef<THREE.InstancedMesh>(null);
-  const low = useRef<THREE.InstancedMesh>(null);
-  const high = useRef<THREE.InstancedMesh>(null);
+  const model = useRef<THREE.Group>(null);
+  const [parts, setParts] = useState<InstancePart[]>([]);
+  const signature = useRef<string | null>(null);
+  const meshes = useRef<(THREE.InstancedMesh | null)[]>([]);
+  const drafts = useDraftsVersion();
+  // after every render (and every unsaved edit in dev), read the model again; nothing is redone unless it changed
+  useLayoutEffect(() => {
+    if (!model.current) return;
+    // the model is only read, never drawn or clicked: its meshes are told not to take part in picking
+    model.current.traverse((o) => {
+      o.raycast = () => {};
+    });
+    const next = collectParts(model.current, WHITE);
+    const sig = partsSignature(next);
+    if (sig === signature.current) return;
+    signature.current = sig;
+    setParts(next);
+  }, [drafts, trees]);
   useLayoutEffect(() => {
     const o = new THREE.Object3D();
+    const m = new THREE.Matrix4();
     const c = new THREE.Color();
-    const place = (mesh: THREE.InstancedMesh | null, i: number, t: TreeSpec, pos: Vec3, scale: Vec3, rot: Vec3, color?: string) => {
+    parts.forEach((part, p) => {
+      const mesh = meshes.current[p];
       if (!mesh) return;
-      const s = t.size ?? 1;
-      o.position.set(t.at[0] + pos[0] * s, t.at[1] + pos[1] * s, t.at[2] + pos[2] * s);
-      o.rotation.set(rot[0], rot[1], rot[2]);
-      o.scale.set(scale[0] * s, scale[1] * s, scale[2] * s);
-      o.updateMatrix();
-      mesh.setMatrixAt(i, o.matrix);
-      if (color) mesh.setColorAt(i, c.set(color));
-    };
-    trees.forEach((t, i) => {
-      const green = t.color ?? '#4fa83d';
-      place(trunks.current, i, t, [0, 0.3, 0], [0.12, 0.6, 0.12], [0, 0, 0], '#8a5a34');
-      place(low.current, i, t, [0, 1.05, 0], [0.6, 0.65, 0.6], [0, 0, 0], green);
-      place(high.current, i, t, [0.15, 1.45, 0.05], [0.38, 0.4, 0.38], [0.4, 0.6, 0], green);
+      trees.forEach((t, i) => {
+        o.position.set(...t.at);
+        o.scale.setScalar(t.size ?? 1);
+        o.rotation.set(0, 0, 0);
+        o.updateMatrix();
+        mesh.setMatrixAt(i, m.multiplyMatrices(o.matrix, part.matrix));
+        mesh.setColorAt(i, c.set(part.color ?? t.color ?? '#4fa83d'));
+      });
+      mesh.instanceMatrix.needsUpdate = true;
+      if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     });
-    for (const m of [trunks.current, low.current, high.current]) {
-      if (!m) continue;
-      m.instanceMatrix.needsUpdate = true;
-      if (m.instanceColor) m.instanceColor.needsUpdate = true;
-    }
-  }, [trees]);
-  const key = trees.length;
+  }, [parts, trees]);
   return (
     <>
-      <instancedMesh key={`t${key}`} ref={trunks} args={[GEO.cylLow, WHITE, trees.length]} castShadow receiveShadow frustumCulled={false} />
-      <instancedMesh key={`l${key}`} ref={low} args={[GEO.blob, WHITE, trees.length]} castShadow frustumCulled={false} />
-      <instancedMesh key={`h${key}`} ref={high} args={[GEO.blob, WHITE, trees.length]} castShadow frustumCulled={false} />
+      <group ref={model} visible={false}>
+        <TreeModel color="#ffffff" />
+      </group>
+      {parts.map((part, p) => (
+        <instancedMesh
+          key={`${p}:${trees.length}:${parts.length}`}
+          ref={(el) => {
+            meshes.current[p] = el;
+          }}
+          args={[part.geometry, WHITE, trees.length]}
+          castShadow={part.cast}
+          receiveShadow={part.receive}
+          frustumCulled={false}
+          userData={{ instanced: true, src: part.src }}
+        />
+      ))}
     </>
   );
 }

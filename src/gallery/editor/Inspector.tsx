@@ -87,7 +87,7 @@ function ScalarField({ f, draft, info }: { f: Field; draft?: Record<string, unkn
 
 /** The editor's panel: switch editing on, then click a part in the view to change it. */
 export function Inspector() {
-  const { enabled, mode, selected, info, copies, parent, message, busy } = useEditor();
+  const { enabled, mode, selected, info, copies, parent, instancedOnly, message, busy } = useEditor();
   const drafts = useDraftStore((s) => s.drafts);
   const draft = selected ? drafts[selected] : undefined;
   const dirty = Object.keys(drafts).length;
@@ -116,6 +116,7 @@ export function Inspector() {
                 </button>
               )}
               {copies > 1 && <p className="g-note">Used {copies} times here: an edit applies to every copy.</p>}
+              {!instancedOnly && (
               <div className="g-seg">
                 <span>Gizmo</span>
                 <div>
@@ -126,6 +127,8 @@ export function Inspector() {
                   ))}
                 </div>
               </div>
+              )}
+              {instancedOnly && <p className="g-note">Part of the instanced forest: change it with the fields; every tree follows.</p>}
               {(FIELDS[info.name] ?? []).map((f) => (f.kind === 'vec' ? <VecField key={f.key} f={f} draft={draft} info={info} /> : <ScalarField key={f.key} f={f} draft={draft} info={info} />))}
               <div className="g-row g-actions">
                 <button className="g-btn" disabled={!info.canStructure || busy} onClick={() => void duplicate()} title={info.canStructure ? 'Copy this part one unit along x' : 'This part is inside a loop or a condition'}>
