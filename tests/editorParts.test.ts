@@ -167,3 +167,29 @@ describe('placed trees and cars', () => {
     expect(() => applyChanges(PLACED, 3, { color: '#fff' })).toThrow(/computed/);
   });
 });
+
+describe('walls of windows', () => {
+  const WALLS = `export function Tower({ w, d, floors, seed, closed }: P) {
+  return (
+    <group>
+      <ActivityWindows at={[1, 0, 2]} w={w} d={3.4} floors={floors - 1} cols={4} seed={seed} closed={closed} darkColor="#7b93ad" />
+    </group>
+  );
+}
+`;
+  it('lists the wall and tells plain values from computed ones', () => {
+    const wall = describePart(WALLS, listParts(WALLS)[0]);
+    expect(wall.name).toBe('ActivityWindows');
+    expect(wall.attrs.d).toEqual({ kind: 'number', value: 3.4 });
+    expect(wall.attrs.w).toEqual({ kind: 'expr', text: 'w' });
+    expect(wall.attrs.cols).toEqual({ kind: 'number', value: 4 });
+    expect(wall.canStructure).toBe(true);
+  });
+
+  it('edits columns and colors, adds an attribute, skips defaults, refuses computed', () => {
+    expect(applyChanges(WALLS, 0, { cols: 5, darkColor: '#112233' })).toMatch(/cols=\{5\}.*darkColor="#112233"/);
+    expect(applyChanges(WALLS, 0, { floorHeight: 0.9 })).toContain('darkColor="#7b93ad" floorHeight={0.9} />');
+    expect(applyChanges(WALLS, 0, { floorHeight: 1, litColor: '#ffe27a', baseHeight: 0.6 })).toBe(WALLS);
+    expect(() => applyChanges(WALLS, 0, { w: 4 })).toThrow(/computed/);
+  });
+});

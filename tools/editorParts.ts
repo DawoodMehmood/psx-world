@@ -11,8 +11,8 @@ import { parseAst } from 'vite';
  * shifts when a part is added or removed.
  */
 
-/** The kit pieces the editor can pick, move and recolor: the six shapes, the Blob crown shape, and the placed Tree and Car. */
-export const SHAPES = new Set(['Box', 'Cyl', 'Cone', 'Dome', 'Ball', 'Roof', 'Blob', 'Tree', 'Car']);
+/** The kit pieces the editor can pick, move and recolor: the six shapes, the Blob crown shape, and the placed Tree, Car and wall of windows. */
+export const SHAPES = new Set(['Box', 'Cyl', 'Cone', 'Dome', 'Ball', 'Roof', 'Blob', 'Tree', 'Car', 'ActivityWindows']);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Node = Record<string, any>;
@@ -164,9 +164,10 @@ const DEFAULTS: Record<string, number | boolean | string | number[]> = {
 };
 
 /** Defaults that belong to one piece (a Tree is 1 big and leaf green unless told otherwise), checked before the shared ones. */
-const OWN_DEFAULTS: Record<string, Record<string, number | string>> = {
+const OWN_DEFAULTS: Record<string, Record<string, number | string | boolean>> = {
   Tree: { size: 1, color: '#4fa83d' },
   Car: { rotY: 0 },
+  ActivityWindows: { floorHeight: 1, baseHeight: 0.6, cols: 3, seed: 1, litColor: '#ffe27a', darkColor: '#5b6f86', closed: false },
 };
 const defaultOf = (name: string, key: string) => OWN_DEFAULTS[name]?.[key] ?? DEFAULTS[key];
 

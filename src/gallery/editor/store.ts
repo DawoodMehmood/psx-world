@@ -181,6 +181,8 @@ export interface Field {
   min?: number;
   /** Shown in degrees, stored in radians. */
   angle?: boolean;
+  /** Whole numbers only (a count of floors or columns). */
+  int?: boolean;
 }
 
 const POS: Field = { key: 'at', label: 'Position', kind: 'vec', def: [0, 0, 0], step: 0.05 };
@@ -200,6 +202,19 @@ export const FIELDS: Record<string, Field[]> = {
   Blob: [{ key: 'size', label: 'Radii (x, y, z)', kind: 'vec', def: [1, 1, 1], step: 0.05, min: 0.01 }, POS, ROT, COLOR, GLOW, SHADOW],
   Tree: [POS, { key: 'size', label: 'Size', kind: 'num', def: 1, step: 0.05, min: 0.1 }, { key: 'color', label: 'Leaves', kind: 'color', def: '#4fa83d' }],
   Car: [COLOR, POS, { key: 'rotY', label: 'Heading (°)', kind: 'num', def: 0, step: 5, angle: true }],
+  ActivityWindows: [
+    POS,
+    num('w', 'Width (x)'),
+    num('d', 'Depth (z)'),
+    { key: 'floors', label: 'Floors', kind: 'num', def: 1, step: 1, min: 0, int: true },
+    { key: 'cols', label: 'Columns per face', kind: 'num', def: 3, step: 1, min: 1, int: true },
+    { key: 'floorHeight', label: 'Floor height', kind: 'num', def: 1, step: 0.05, min: 0.1 },
+    { key: 'baseHeight', label: 'First floor at', kind: 'num', def: 0.6, step: 0.05, min: 0 },
+    { key: 'litColor', label: 'Lit color', kind: 'color', def: '#ffe27a' },
+    { key: 'darkColor', label: 'Dark color', kind: 'color', def: '#5b6f86' },
+    { key: 'seed', label: 'Lighting order seed', kind: 'num', def: 1, step: 1, int: true },
+    { key: 'closed', label: 'Closed (always dark)', kind: 'bool', def: false },
+  ],
 };
 
 export interface Slot {

@@ -7,6 +7,7 @@ import { CREW, movingVehicles, openBayCount, runningCount } from '../../engine/v
 import { ConstructionSlot } from '../construction/ConstructionSlot';
 import { Box, Cone, Cyl, GEO, mat, type Vec3 } from '../kit';
 import { useMotion } from '../motion';
+import { useDraft } from '../editDraft';
 import { BAY_Z, BUILD_W, DOCK_X, STREET_X, TIER_BAYS } from './sitePlan';
 import type { ArchetypeProps } from './types';
 
@@ -252,19 +253,7 @@ const WIN_LIT = '#ffe27a';
  * Activity: few lit when quiet, nearly all in a frenzy. Each window has a
  * fixed threshold, so they switch on one by one. `closed` keeps them dark.
  */
-export function ActivityWindows({
-  at,
-  w,
-  d,
-  floors,
-  floorHeight = 1,
-  baseHeight = 0.6,
-  cols = 3,
-  seed = 1,
-  closed = false,
-  litColor = WIN_LIT,
-  darkColor = WIN_DARK,
-}: {
+export function ActivityWindows(props: {
   at: Vec3;
   w: number;
   d: number;
@@ -276,7 +265,10 @@ export function ActivityWindows({
   closed?: boolean;
   litColor?: string;
   darkColor?: string;
+  /** Dev only: where this element is written, put there by the asset editor's Vite plugin. */
+  __src?: string;
 }) {
+  const { at, w, d, floors, floorHeight = 1, baseHeight = 0.6, cols = 3, seed = 1, closed = false, litColor = WIN_LIT, darkColor = WIN_DARK, __src } = useDraft(props);
   const motion = useMotion();
   const litMesh = useRef<InstancedMesh>(null);
   const darkMesh = useRef<InstancedMesh>(null);
@@ -304,7 +296,9 @@ export function ActivityWindows({
   const dark = mat(darkColor);
   // The lit mesh holds the windows in threshold order and the dark mesh holds them in reverse, so showing the first k of
   // one and the first n - k of the other splits the set at any lit share without touching a matrix per frame.
+  const shown = useRef(-1);
   useLayoutEffect(() => {
+    shown.current = -1; // new meshes start with every window counted; the next frame sets the lit split again
     const o = new Object3D();
     windows.forEach(({ pos, size }, i) => {
       o.position.set(...pos);
@@ -315,7 +309,6 @@ export function ActivityWindows({
     });
     for (const m of [litMesh.current, darkMesh.current]) if (m) m.instanceMatrix.needsUpdate = true;
   }, [windows]);
-  const shown = useRef(-1);
   useFrame(() => {
     // a blackout (a big move down on a tech campus) knocks out part of the lighting
     const share = closed ? 0 : (0.1 + motion.intensity * 0.85) * (1 - 0.6 * motion.blackout);
@@ -327,10 +320,11 @@ export function ActivityWindows({
     if (darkMesh.current) darkMesh.current.count = windows.length - k;
   });
   return (
-    <>
+    // one group carries the source id, so the editor picks and moves both meshes as one wall of windows
+    <group userData={__src ? { src: __src } : undefined}>
       <instancedMesh key={`l${windows.length}`} ref={litMesh} args={[GEO.box, lit, windows.length]} frustumCulled={false} />
       <instancedMesh key={`d${windows.length}`} ref={darkMesh} args={[GEO.box, dark, windows.length]} frustumCulled={false} />
-    </>
+    </group>
   );
 }
 

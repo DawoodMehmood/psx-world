@@ -78,7 +78,7 @@ function ScalarField({ f, draft, info }: { f: Field; draft?: Record<string, unkn
   return (
     <label className="g-field">
       <span>{f.label}</span>
-      {f.kind === 'num' && <NumInput value={f.angle ? (r.value as number) * DEG : (r.value as number)} step={f.step} min={f.min} onChange={(v) => set(f.angle ? v / DEG : v)} />}
+      {f.kind === 'num' && <NumInput value={f.angle ? (r.value as number) * DEG : (r.value as number)} step={f.step} min={f.min} onChange={(v) => set(f.angle ? v / DEG : f.int ? Math.round(v) : v)} />}
       {f.kind === 'color' && <input type="color" value={r.value as string} onChange={(e) => set(e.target.value)} />}
       {f.kind === 'bool' && <input type="checkbox" checked={r.value as boolean} onChange={(e) => set(e.target.checked)} />}
     </label>
@@ -101,7 +101,7 @@ export function Inspector() {
       </label>
       {enabled && (
         <div className="g-edit">
-          {!selected && <p className="g-note">Click a box, cylinder, cone, dome, ball, roof, blob, tree or car. A click picks the smallest part; use the up arrow to pick what it sits in. Parts are shown unmerged while editing, so counts above are higher than in the city.</p>}
+          {!selected && <p className="g-note">Click a box, cylinder, cone, dome, ball, roof, blob, tree, car or a wall of windows. A click picks the smallest part; use the up arrow to pick what it sits in. Parts are shown unmerged while editing, so counts above are higher than in the city.</p>}
           {selected && !info && <p className="g-note">Loading…</p>}
           {selected && info && (
             <>

@@ -88,8 +88,11 @@ export function Gallery() {
   // survive a full reload, and follow hot updates while editing
   useEffect(() => persist({ asset: asset.id, values, ctx, view: { grid: view.grid, paused: view.paused, turntable: view.turntable } }), [asset.id, values, ctx, view]);
   useEffect(() => watchHot(), []);
+  // a part picked in another asset (the URL changed under a saved session) is not in this one
+  const fresh = useRef(saved.asset !== asset.id);
   useEffect(() => {
-    if (useEditor.getState().selected) void select(useEditor.getState().selected);
+    const picked = useEditor.getState().selected;
+    if (picked) void select(fresh.current ? null : picked);
   }, []);
   // editing holds the view still, and Cmd/Ctrl+Z undoes the last save
   useEffect(() => {
@@ -298,7 +301,12 @@ function measure(root: Object3D): Stats {
 function Stage({ asset, values, ctx, view, onStats }: { asset: AssetDef; values: Values; ctx: StateCtx; view: View; onStats: (s: Stats) => void }) {
   const content = useRef<Object3D>(null);
   const sun = useRef<DirectionalLight>(null);
-  const { camera, size } = useThree();
+  const three = useThree();
+  const { camera, size } = three;
+  // handy in the console for measuring (gl.info) and for tests that need to know where a part is on screen
+  useEffect(() => {
+    (window as unknown as { __psx: unknown }).__psx = three;
+  }, [three]);
   const controls = useThree((s) => s.controls) as OrbitControlsImpl | null;
   const [bounds, setBounds] = useState({ x: 0, z: 0, r: 8 });
 
