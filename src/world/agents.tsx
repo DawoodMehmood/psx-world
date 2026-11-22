@@ -96,7 +96,7 @@ export function MixerTruck({ cab = '#f2b632' }: { cab?: string }) {
         <group ref={drum}>
           <Static moving single>
             <Cyl r={0.45} h={1.3} rot={[0, 0, Math.PI / 2]} color="#f1ece2" center />
-            <Box size={[1.2, 0.12, 0.12]} at={[0, 0.38, 0.22]} rot={[0.5, 0, 0]} color="#d94b3d" shadow={false} />
+            <Box size={[1.2, 0.05, 0.12]} at={[0, 0.38, 0.22]} rot={[0.5, 0, 0]} color="#d94b3d" shadow={false} />
           </Static>
         </group>
       </group>
