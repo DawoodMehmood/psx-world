@@ -48,6 +48,7 @@ Every archetype uses the same site plan (a vehicle strip along the side street, 
 | `src/store/useSimStore.ts` | Playback state: snapshots, current tick, speed, overrides |
 | `src/world/motion.ts` | Per-plot animation state eased toward the company's levels |
 | `src/world/effects/`, `src/world/construction/`, `src/world/agents.tsx` | Event effects, the building-site lifecycle, workers and trucks |
+| `src/gallery/`, `tools/` | Dev-only asset gallery and visual editor: run `npm run dev` and open `/psx-world/?assets` (add an asset in `src/gallery/assets.tsx`). Tick *Edit parts*, click a shape, change it, Save: the source file is rewritten. `tools/editorParts.ts` is the tested rewriter, `tools/assetEditor.ts` the Vite plugin |
 
 ## Add a company
 

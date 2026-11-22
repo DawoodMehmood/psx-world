@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { RoundedBox } from '@react-three/drei';
 import { useLayoutEffect, useRef, type ReactNode } from 'react';
 import { Static } from './Static';
+import { useDraft } from './editDraft';
 
 /**
  * Low-poly building kit. Every shape shares a unit geometry and a cached
@@ -51,21 +52,26 @@ interface ShapeProps {
   glow?: number;
   rot?: Vec3;
   shadow?: boolean;
+  /** Dev only: where this shape is written, put there by the asset editor's Vite plugin. */
+  __src?: string;
 }
 
-export function Box({ size, at = [0, 0, 0], color, glow, rot, shadow = true, rounded = 0 }: ShapeProps & { size: Vec3; rounded?: number }) {
+export function Box(props: ShapeProps & { size: Vec3; rounded?: number }) {
+  const { size, at = [0, 0, 0], color, glow, rot, shadow = true, rounded = 0, __src } = useDraft(props);
   const [w, h, d] = size;
   const pos: Vec3 = [at[0], at[1] + h / 2, at[2]];
+  const userData = __src ? { src: __src } : undefined;
   if (rounded > 0) {
     return (
-      <RoundedBox args={size} radius={rounded} smoothness={2} position={pos} rotation={rot} material={mat(color, glow)} castShadow={shadow} receiveShadow />
+      <RoundedBox args={size} radius={rounded} smoothness={2} position={pos} rotation={rot} material={mat(color, glow)} castShadow={shadow} receiveShadow userData={userData} />
     );
   }
-  return <mesh geometry={GEO.box} material={mat(color, glow)} position={pos} rotation={rot} scale={[w, h, d]} castShadow={shadow} receiveShadow />;
+  return <mesh geometry={GEO.box} material={mat(color, glow)} position={pos} rotation={rot} scale={[w, h, d]} castShadow={shadow} receiveShadow userData={userData} />;
 }
 
 /** Cylinder standing on `at`. Pass `center` when rotating it (pipes, axles) so `at` is its middle. */
-export function Cyl({ r, h, at = [0, 0, 0], color, glow, rot, shadow = true, low = false, center = false }: ShapeProps & { r: number; h: number; low?: boolean; center?: boolean }) {
+export function Cyl(props: ShapeProps & { r: number; h: number; low?: boolean; center?: boolean }) {
+  const { r, h, at = [0, 0, 0], color, glow, rot, shadow = true, low = false, center = false, __src } = useDraft(props);
   return (
     <mesh
       geometry={low ? GEO.cylLow : GEO.cyl}
@@ -75,25 +81,30 @@ export function Cyl({ r, h, at = [0, 0, 0], color, glow, rot, shadow = true, low
       scale={[r, h, r]}
       castShadow={shadow}
       receiveShadow
+      userData={__src ? { src: __src } : undefined}
     />
   );
 }
 
-export function Cone({ r, h, at = [0, 0, 0], color, rot }: ShapeProps & { r: number; h: number }) {
-  return <mesh geometry={GEO.cone} material={mat(color)} position={[at[0], at[1] + h / 2, at[2]]} rotation={rot} scale={[r, h, r]} castShadow receiveShadow />;
+export function Cone(props: ShapeProps & { r: number; h: number }) {
+  const { r, h, at = [0, 0, 0], color, rot, __src } = useDraft(props);
+  return <mesh geometry={GEO.cone} material={mat(color)} position={[at[0], at[1] + h / 2, at[2]]} rotation={rot} scale={[r, h, r]} castShadow receiveShadow userData={__src ? { src: __src } : undefined} />;
 }
 
-export function Dome({ r, at = [0, 0, 0], color, glow }: ShapeProps & { r: number }) {
-  return <mesh geometry={GEO.dome} material={mat(color, glow)} position={at} scale={[r, r, r]} castShadow receiveShadow />;
+export function Dome(props: ShapeProps & { r: number }) {
+  const { r, at = [0, 0, 0], color, glow, __src } = useDraft(props);
+  return <mesh geometry={GEO.dome} material={mat(color, glow)} position={at} scale={[r, r, r]} castShadow receiveShadow userData={__src ? { src: __src } : undefined} />;
 }
 
-export function Ball({ r, at = [0, 0, 0], color, glow, shadow = true }: ShapeProps & { r: number }) {
-  return <mesh geometry={GEO.ball} material={mat(color, glow)} position={at} scale={[r, r, r]} castShadow={shadow} />;
+export function Ball(props: ShapeProps & { r: number }) {
+  const { r, at = [0, 0, 0], color, glow, shadow = true, __src } = useDraft(props);
+  return <mesh geometry={GEO.ball} material={mat(color, glow)} position={at} scale={[r, r, r]} castShadow={shadow} userData={__src ? { src: __src } : undefined} />;
 }
 
 /** Gabled roof sitting on top of a w×d footprint, ridge along z. */
-export function Roof({ w, d, h, at = [0, 0, 0], color }: ShapeProps & { w: number; d: number; h: number }) {
-  return <mesh geometry={GEO.prism} material={mat(color)} position={[at[0], at[1] + h / 3, at[2]]} scale={[w / 1.732, h / 1.5, d]} castShadow receiveShadow />;
+export function Roof(props: ShapeProps & { w: number; d: number; h: number }) {
+  const { w, d, h, at = [0, 0, 0], color, __src } = useDraft(props);
+  return <mesh geometry={GEO.prism} material={mat(color)} position={[at[0], at[1] + h / 3, at[2]]} scale={[w / 1.732, h / 1.5, d]} castShadow receiveShadow userData={__src ? { src: __src } : undefined} />;
 }
 
 /** Round cartoon tree. */

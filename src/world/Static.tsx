@@ -1,6 +1,7 @@
 import { createContext, useContext, useLayoutEffect, useMemo, useRef, type ReactNode } from 'react';
 import * as THREE from 'three';
 import { mergeBufferGeometries as mergeGeometries } from 'three-stdlib';
+import { EditingContext } from './editing';
 
 /** Shared by every merged plain-color part: the part's color is baked into vertex colors. */
 const VERTEX_COLOR_MATERIAL = new THREE.MeshStandardMaterial({ roughness: 0.85, metalness: 0, flatShading: true, vertexColors: true });
@@ -175,10 +176,12 @@ export function StaticScope({ children }: { children: ReactNode }) {
 export function Static({ children, moving = false, single = false, cast = true }: { children: ReactNode; moving?: boolean; single?: boolean; cast?: boolean }) {
   const group = useRef<THREE.Group>(null);
   const scope = useContext(ScopeContext);
+  // the asset editor shows every part as its own mesh, so each can be picked
+  const editing = useContext(EditingContext);
   const shared = !!scope && !moving;
   useLayoutEffect(() => {
     const root = group.current;
-    if (!root) return;
+    if (!root || editing) return;
     if (shared) {
       scope.members.add(root);
       scope.request();

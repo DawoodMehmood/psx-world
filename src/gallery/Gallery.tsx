@@ -8,6 +8,10 @@ import { ACTIVITY, DIRECTION, HEALTH, SLOT_STAGES, VOLATILITY } from '../engine/
 import { ACTIVITY_INTENSITY, JITTER, POOL, pace } from '../engine/visual';
 import { createMotion, MotionContext } from '../world/motion';
 import { StaticScope } from '../world/Static';
+import { EditingContext } from '../world/editing';
+import { Inspector } from './editor/Inspector';
+import { gizmo, Selection, srcOf } from './editor/Selection';
+import { persist, redo, saved, select, undo, useEditor, watchHot } from './editor/store';
 import { ASSETS, GROUPS, paramDefaults, type AssetDef, type Param, type StateCtx, type Values } from './assets';
 import { locate, type SourceRef } from './source';
 import './gallery.css';
@@ -57,26 +61,51 @@ function withCompany(ctx: StateCtx, ticker: string): StateCtx {
 }
 
 function initialAsset(): AssetDef {
-  const id = new URLSearchParams(location.search).get('assets');
+  const id = new URLSearchParams(location.search).get('assets') || (saved.asset as string | undefined);
   return ASSETS.find((a) => a.id === id) ?? ASSETS[0];
 }
 
 export function Gallery() {
   const [asset, setAsset] = useState(initialAsset);
-  const [values, setValues] = useState<Values>(() => paramDefaults(asset));
+  const [values, setValues] = useState<Values>(() => (saved.asset === asset.id && saved.values ? (saved.values as Values) : paramDefaults(asset)));
   const [ctx, setCtx] = useState<StateCtx>(() => {
-    const first = initialAsset();
-    return first.site ? withCompany(startCtx(), COMPANIES.find((c) => c.archetype === first.site)!.ticker) : startCtx();
+    if (saved.asset === asset.id && saved.ctx) return saved.ctx as StateCtx;
+    return asset.site ? withCompany(startCtx(), COMPANIES.find((c) => c.archetype === asset.site)!.ticker) : startCtx();
   });
-  const [view, setView] = useState<View>({ turntable: true, grid: false, paused: false, fit: 0 });
+  const [view, setView] = useState<View>(() => ({ turntable: !useEditor.getState().enabled, grid: false, paused: false, fit: 0, ...((saved.view as Partial<View>) ?? {}) }));
+  const editing = useEditor((s) => s.enabled);
   const [stats, setStats] = useState<Stats>({ meshes: 0, triangles: 0 });
   const [source, setSource] = useState<SourceRef | null>(null);
 
   const pick = useCallback((a: AssetDef) => {
+    void select(null);
     setAsset(a);
     setValues(paramDefaults(a));
     if (a.site) setCtx((c) => (COMPANY_BY_TICKER[c.company]?.archetype === a.site ? c : withCompany(c, COMPANIES.find((x) => x.archetype === a.site)!.ticker)));
     history.replaceState(null, '', `?assets=${a.id}`);
+  }, []);
+
+  // survive a full reload, and follow hot updates while editing
+  useEffect(() => persist({ asset: asset.id, values, ctx, view: { grid: view.grid, paused: view.paused, turntable: view.turntable } }), [asset.id, values, ctx, view]);
+  useEffect(() => watchHot(), []);
+  useEffect(() => {
+    if (useEditor.getState().selected) void select(useEditor.getState().selected);
+  }, []);
+  // editing holds the view still, and Cmd/Ctrl+Z undoes the last save
+  useEffect(() => {
+    if (editing) setView((v) => ({ ...v, turntable: false }));
+  }, [editing]);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!useEditor.getState().enabled || e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
+      if (e.key === 'Escape') void select(null);
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        void (e.shiftKey ? redo() : undo());
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
   }, []);
 
   useEffect(() => {
@@ -111,7 +140,16 @@ export function Gallery() {
       </nav>
 
       <main className="g-stage">
-        <Canvas shadows="percentage" dpr={[1, 2]} orthographic camera={{ position: [60, 60, 60], zoom: 20, near: 0.1, far: 2000 }} gl={{ alpha: true, antialias: true }}>
+        <Canvas
+          shadows="percentage"
+          dpr={[1, 2]}
+          orthographic
+          camera={{ position: [60, 60, 60], zoom: 20, near: 0.1, far: 2000 }}
+          gl={{ alpha: true, antialias: true }}
+          onPointerMissed={() => {
+            if (!gizmo.busy) void select(null);
+          }}
+        >
           <Stage asset={asset} values={values} ctx={ctx} view={view} onStats={setStats} />
         </Canvas>
       </main>
@@ -125,6 +163,8 @@ export function Gallery() {
         <div className="g-stats">
           {stats.meshes} meshes · {stats.triangles.toLocaleString()} triangles
         </div>
+
+        <Inspector />
 
         <h3>View</h3>
         <div className="g-row">
@@ -320,6 +360,7 @@ function Stage({ asset, values, ctx, view, onStats }: { asset: AssetDef; values:
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fitKey, controls]);
 
+  const editing = useEditor((s) => s.enabled);
   const gridSize = Math.max(4, Math.ceil(bounds.r * 2.6 / 2) * 2);
   const body = asset.render(values, ctx);
   return (
@@ -332,9 +373,26 @@ function Stage({ asset, values, ctx, view, onStats }: { asset: AssetDef; values:
         <meshStandardMaterial color="#bfe3a8" roughness={1} />
       </mesh>
       {view.grid && <gridHelper args={[gridSize, gridSize, '#2b2a33', '#2b2a33']} position={[Math.round(bounds.x), 0.01, Math.round(bounds.z)]} material-opacity={0.25} material-transparent />}
-      <MotionContext.Provider value={motion}>
-        <group ref={content}>{asset.scope ? <StaticScope>{body}</StaticScope> : body}</group>
-      </MotionContext.Provider>
+      {/* while editing, parts are drawn unmerged (and the group remounts to switch) so each can be clicked */}
+      <EditingContext.Provider value={editing}>
+        <MotionContext.Provider value={motion}>
+          <group
+            key={String(editing)}
+            ref={content}
+            onClick={
+              editing
+                ? (e) => {
+                    e.stopPropagation();
+                    if (!gizmo.busy) void select(srcOf(e.object));
+                  }
+                : undefined
+            }
+          >
+            {asset.scope ? <StaticScope>{body}</StaticScope> : body}
+          </group>
+        </MotionContext.Provider>
+      </EditingContext.Provider>
+      {editing && <Selection root={content} />}
     </>
   );
 }

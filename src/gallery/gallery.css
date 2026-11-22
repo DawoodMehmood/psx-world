@@ -150,3 +150,50 @@
   font-size: 12px;
   color: var(--ink-soft);
 }
+
+.g-edit {
+  margin-top: 4px;
+}
+.g-num {
+  width: 100%;
+  min-width: 0;
+  font: inherit;
+  font-size: 12px;
+  padding: 2px 4px;
+  border: 2px solid var(--edge);
+  border-radius: 6px;
+}
+.g-num:disabled {
+  background: #ece8da;
+  color: var(--ink-soft);
+  border-style: dashed;
+}
+.g-vec {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  flex: 1;
+  max-width: 200px;
+}
+.g-computed {
+  font-size: 11px;
+  background: #ece8da;
+  padding: 2px 6px;
+  border-radius: 6px;
+  overflow-wrap: anywhere;
+  max-width: 190px;
+}
+.g-actions {
+  margin: 8px 0;
+}
+.g-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.g-btn.primary {
+  background: #ffd23f;
+  font-weight: 600;
+}
+.g-btn.danger {
+  color: #b3261e;
+}
