@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { relative, resolve, sep } from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
-import { applyChanges, deletePart, describePart, duplicatePart, listParts, tagParts, type Changes } from './editorParts.ts';
+import { applyChanges, applyConstChanges, CONST_FILE, deletePart, describePart, duplicatePart, listConsts, listParts, tagParts, type Changes, type ConstChanges } from './editorParts.ts';
 
 /**
  * Dev-only support for the visual asset editor (`?assets`, SPEC backlog).
@@ -69,6 +69,7 @@ export function assetEditor(): Plugin {
         if (!part) return send(404, { error: 'no such part' });
         return send(200, describePart(code, part));
       }
+      if (req.method === 'GET' && route === 'consts') return send(200, { path: CONST_FILE, consts: listConsts(readFileSync(resolve(root, CONST_FILE), 'utf8')) });
       if (req.method !== 'POST') return send(405, { error: 'POST only' });
       const b = await body(req);
 
@@ -94,6 +95,13 @@ export function assetEditor(): Plugin {
           if (code !== before) write(abs, before, code, `${list.length} edit${list.length === 1 ? '' : 's'} in ${path}`);
         }
         return send(200, { ok: true, changed });
+      }
+      if (route === 'consts') {
+        const abs = resolve(root, CONST_FILE);
+        const before = readFileSync(abs, 'utf8');
+        const code = applyConstChanges(before, b.changes as ConstChanges);
+        if (code !== before) write(abs, before, code, `layout constants in ${CONST_FILE}`);
+        return send(200, { ok: true, changed: code !== before });
       }
       if (route === 'duplicate') {
         const { abs, index, path } = resolveId(b.id as string);

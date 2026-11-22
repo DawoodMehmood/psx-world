@@ -11,8 +11,8 @@ import { parseAst } from 'vite';
  * shifts when a part is added or removed.
  */
 
-/** The kit pieces the editor can pick, move and recolor: the six shapes, the Blob crown shape, and the placed Tree, Car and wall of windows. */
-export const SHAPES = new Set(['Box', 'Cyl', 'Cone', 'Dome', 'Ball', 'Roof', 'Blob', 'Tree', 'Car', 'ActivityWindows']);
+/** The kit pieces the editor can pick, move and recolor: the six shapes, the Blob crown shape, and the placed Tree, Car, wall of windows and the painted and coned-off parts of a vehicle bay. */
+export const SHAPES = new Set(['Box', 'Cyl', 'Cone', 'Dome', 'Ball', 'Roof', 'Blob', 'Tree', 'Car', 'ActivityWindows', 'BayLines', 'ClosedBay']);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Node = Record<string, any>;
@@ -50,7 +50,7 @@ export interface Part {
 
 function parse(code: string, filename: string): Node {
   try {
-    return parseAst(code, { lang: 'tsx' }) as unknown as Node;
+    return parseAst(code, { lang: filename.endsWith('.ts') ? 'ts' : 'tsx' }) as unknown as Node;
   } catch (e) {
     throw new Error(`cannot parse ${filename}: ${(e as Error).message.split('\n')[0]}`);
   }
@@ -167,6 +167,8 @@ const DEFAULTS: Record<string, number | boolean | string | number[]> = {
 const OWN_DEFAULTS: Record<string, Record<string, number | string | boolean>> = {
   Tree: { size: 1, color: '#4fa83d' },
   Car: { rotY: 0 },
+  BayLines: { color: '#f2c94c' },
+  ClosedBay: { x: 13.95 },
   ActivityWindows: { floorHeight: 1, baseHeight: 0.6, cols: 3, seed: 1, litColor: '#ffe27a', darkColor: '#5b6f86', closed: false },
 };
 const defaultOf = (name: string, key: string) => OWN_DEFAULTS[name]?.[key] ?? DEFAULTS[key];
@@ -299,4 +301,63 @@ export function deletePart(code: string, index: number, filename = 'file.tsx'): 
     return code.slice(0, part.start - indent.length) + rest.slice(lineEnd + 1);
   }
   return code.slice(0, part.start) + rest;
+}
+
+// ── layout constants ─────────────────────────────────────────────────────────
+// A few numbers are not an element's attributes but top-level constants that set
+// out the site (where the vehicle bays are). They are edited in place the same way.
+
+/** The only file whose constants the editor writes, and the ones it may change. */
+export const CONST_FILE = 'src/world/buildings/sitePlan.ts';
+export const EDITABLE_CONSTS = ['BAY_Z', 'DOCK_X', 'STREET_X'];
+
+export type ConstInfo = { kind: 'number'; value: number } | { kind: 'array'; items: Item[] };
+/** A number, or for an array one entry per item (null leaves it alone). */
+export type ConstChanges = Record<string, number | (number | null)[]>;
+
+function constInits(code: string, filename: string, names: string[]): Record<string, Node> {
+  const out: Record<string, Node> = {};
+  for (const node of parse(code, filename).body as Node[]) {
+    if (node.type !== 'ExportNamedDeclaration' || node.declaration?.type !== 'VariableDeclaration') continue;
+    for (const d of node.declaration.declarations as Node[]) if (d.id.type === 'Identifier' && names.includes(d.id.name) && d.init) out[d.id.name] = d.init;
+  }
+  return out;
+}
+
+export function listConsts(code: string, filename = CONST_FILE, names = EDITABLE_CONSTS): Record<string, ConstInfo> {
+  const out: Record<string, ConstInfo> = {};
+  for (const [name, init] of Object.entries(constInits(code, filename, names))) {
+    if (init.type === 'ArrayExpression') {
+      out[name] = { kind: 'array', items: init.elements.map((el: Node): Item => { const v = evalConst(el); return v === null ? { kind: 'expr', text: textOf(code, el) } : { kind: 'const', value: v }; }) };
+    } else {
+      const value = evalConst(init);
+      if (value !== null) out[name] = { kind: 'number', value };
+    }
+  }
+  return out;
+}
+
+export function applyConstChanges(code: string, changes: ConstChanges, filename = CONST_FILE, names = EDITABLE_CONSTS): string {
+  const inits = constInits(code, filename, names);
+  const edits: Edit[] = [];
+  for (const [name, change] of Object.entries(changes)) {
+    const init = inits[name];
+    if (!init) throw new Error(`${name} is not an editable constant`);
+    if (Array.isArray(change)) {
+      if (init.type !== 'ArrayExpression') throw new Error(`${name} is not an array`);
+      change.forEach((v, i) => {
+        if (v === null) return;
+        const el = init.elements[i];
+        if (!el) throw new Error(`${name} has no entry ${i}`);
+        const now = evalConst(el);
+        if (now === null) throw new Error(`${name}[${i}] is computed (${textOf(code, el)})`);
+        if (!same(now, v)) edits.push({ start: el.start, end: el.end, text: trim(v) });
+      });
+    } else {
+      const now = evalConst(init);
+      if (now === null) throw new Error(`${name} is computed (${textOf(code, init)})`);
+      if (!same(now, change)) edits.push({ start: init.start, end: init.end, text: trim(change) });
+    }
+  }
+  return splice(code, edits);
 }

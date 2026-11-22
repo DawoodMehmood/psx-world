@@ -197,3 +197,13 @@
 .g-btn.danger {
   color: #b3261e;
 }
+
+.g-bays {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  margin: 6px 0;
+}
+.g-warn {
+  color: #b3261e;
+}

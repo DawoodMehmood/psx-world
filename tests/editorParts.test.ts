@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyChanges, deletePart, describePart, duplicatePart, evalConst, listParts, tagParts } from '../tools/editorParts';
+import { applyChanges, applyConstChanges, deletePart, describePart, duplicatePart, evalConst, listConsts, listParts, tagParts } from '../tools/editorParts';
 
 const SRC = `import { Box, Cyl } from './kit';
 export function Thing({ w, accent }: { w: number; accent: string }) {
@@ -191,5 +191,54 @@ describe('walls of windows', () => {
     expect(applyChanges(WALLS, 0, { floorHeight: 0.9 })).toContain('darkColor="#7b93ad" floorHeight={0.9} />');
     expect(applyChanges(WALLS, 0, { floorHeight: 1, litColor: '#ffe27a', baseHeight: 0.6 })).toBe(WALLS);
     expect(() => applyChanges(WALLS, 0, { w: 4 })).toThrow(/computed/);
+  });
+});
+
+describe('layout constants', () => {
+  const PLAN = `export const BUILD_W = 11.4;
+export const DOCK_X = 12.7;
+/** Bay rows. */
+export const BAY_Z = [1.4, 3.0, 4.6, 7.2 + 0, 8.8];
+export const TIER_BAYS = [3, 5, 7];
+export const ROWS = BAY_Z.length;
+`;
+  it('reads only the constants it is allowed to, and tells plain values from computed', () => {
+    const c = listConsts(PLAN, 'plan.ts', ['BAY_Z', 'DOCK_X', 'ROWS']);
+    expect(c.DOCK_X).toEqual({ kind: 'number', value: 12.7 });
+    expect(c.BAY_Z).toEqual({ kind: 'array', items: [1.4, 3, 4.6, 7.2, 8.8].map((value) => ({ kind: 'const', value })) });
+    expect(c.ROWS).toBeUndefined(); // computed
+    expect(c.BUILD_W).toBeUndefined(); // not asked for
+  });
+
+  it('changes one bay and one number and leaves the rest of the file alone', () => {
+    const out = applyConstChanges(PLAN, { BAY_Z: [null, null, 5, null, null], DOCK_X: 13 }, 'plan.ts', ['BAY_Z', 'DOCK_X']);
+    expect(out).toContain('export const BAY_Z = [1.4, 3.0, 5, 7.2 + 0, 8.8];');
+    expect(out).toContain('DOCK_X = 13;');
+    expect(out.replace('5, 7.2', '4.6, 7.2').replace('= 13;', '= 12.7;')).toBe(PLAN);
+  });
+
+  it('writes nothing for an unchanged value, and refuses other constants and computed ones', () => {
+    expect(applyConstChanges(PLAN, { DOCK_X: 12.7, BAY_Z: [1.4, null, null, null, null] }, 'plan.ts', ['BAY_Z', 'DOCK_X'])).toBe(PLAN);
+    expect(() => applyConstChanges(PLAN, { BUILD_W: 3 }, 'plan.ts', ['BAY_Z'])).toThrow(/not an editable/);
+    expect(() => applyConstChanges(PLAN, { ROWS: 3 }, 'plan.ts', ['ROWS'])).toThrow(/computed/);
+  });
+});
+
+describe('bay parts', () => {
+  const BAYS = `export function Bay({ z }: P) {
+  return (
+    <group>
+      <BayLines z={z} color="#f7f4ec" />
+      <ClosedBay z={z} />
+    </group>
+  );
+}
+`;
+  it('lists them and edits their literal props, leaving z computed', () => {
+    expect(listParts(BAYS).map((p) => p.name)).toEqual(['BayLines', 'ClosedBay']);
+    expect(applyChanges(BAYS, 0, { color: '#ffffff' })).toContain('color="#ffffff"');
+    expect(applyChanges(BAYS, 1, { x: 14.2 })).toContain('<ClosedBay z={z} x={14.2} />');
+    expect(applyChanges(BAYS, 1, { x: 13.95 })).toBe(BAYS);
+    expect(() => applyChanges(BAYS, 0, { z: 2 })).toThrow(/computed/);
   });
 });

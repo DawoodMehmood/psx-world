@@ -86,6 +86,8 @@ export function Selection({ root }: { root: RefObject<Object3D | null> }) {
   // a Car turns about y only (its heading), everything else about all three axes; a Tree does not turn
   const turn = info.name === 'Car' ? 'rotY' : 'rot';
   const fields = FIELDS[info.name] ?? [];
+  // a part with no position of its own (a bay is placed by its z and x) has nothing to drag
+  if (mode === 'translate' && !fields.some((f) => f.key === 'at')) return null;
   if (mode === 'rotate' && !fields.some((f) => f.key === turn)) return null;
   // a position or rotation computed as a whole in the source cannot be dragged
   if (mode === 'translate' ? slotsOf('at').whole !== undefined : turn === 'rot' && slotsOf('rot').whole !== undefined) return null;

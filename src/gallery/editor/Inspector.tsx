@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useDraftStore } from '../../world/editDraft';
-import { duplicate, FIELDS, select, readScalar, readVec, redo, remove, revert, save, setDraft, setDraftVec, setEnabled, undo, useEditor, type Field } from './store';
+import { duplicate, FIELDS, loadConsts, select, setConst, readScalar, readVec, redo, remove, revert, save, setDraft, setDraftVec, setEnabled, undo, useEditor, type Field } from './store';
 
 const DEG = 180 / Math.PI;
 const clean = (n: number) => +n.toFixed(4);
@@ -85,12 +85,63 @@ function ScalarField({ f, draft, info }: { f: Field; draft?: Record<string, unkn
   );
 }
 
+
+/**
+ * Where the vehicle bays are: top-level numbers in sitePlan.ts shared by every district. They are baked into the code,
+ * so they apply when you Save (the page then reloads) rather than previewing as you type.
+ */
+function BayLayout() {
+  const consts = useEditor((s) => s.consts);
+  const drafts = useEditor((s) => s.constDrafts);
+  useEffect(() => {
+    void loadConsts();
+  }, []);
+  const bayZ = consts?.BAY_Z;
+  if (!consts || bayZ?.kind !== 'array') return null;
+  const zs = bayZ.items.map((it, i) => {
+    const d = drafts.BAY_Z;
+    const v = Array.isArray(d) ? d[i] : undefined;
+    return { value: v ?? (it.kind === 'const' ? it.value : 0), editable: it.kind === 'const' };
+  });
+  const problems: string[] = [];
+  zs.forEach((z, i) => {
+    if (z.value < 0.55 || z.value > 13.45) problems.push(`bay ${i + 1} is outside the lot`);
+    if (i > 0 && z.value - zs[i - 1].value < 1.1) problems.push(`bays ${i} and ${i + 1} overlap`);
+  });
+  const scalar = (name: 'DOCK_X' | 'STREET_X', label: string) => {
+    const c = consts[name];
+    if (c?.kind !== 'number') return null;
+    const d = drafts[name];
+    return (
+      <div className="g-field">
+        <span>{label}</span>
+        <NumInput value={typeof d === 'number' ? d : c.value} step={0.05} onChange={(v) => setConst(name, null, v)} />
+      </div>
+    );
+  };
+  return (
+    <>
+      <h3>Bay layout (all districts)</h3>
+      <p className="g-note">Bay rows along the street (z). Applies when you Save, then the page reloads.</p>
+      <div className="g-bays">
+        {zs.map((z, i) => (
+          <NumInput key={i} value={z.value} step={0.1} disabled={!z.editable} title={`Bay ${i + 1}`} onChange={(v) => setConst('BAY_Z', i, v)} />
+        ))}
+      </div>
+      {scalar('DOCK_X', 'Where a vehicle stops (x)')}
+      {scalar('STREET_X', 'Where it leaves the lot (x)')}
+      {problems.length > 0 && <p className="g-note g-warn">⚠ {problems.join('; ')}. The site-plan tests will fail.</p>}
+    </>
+  );
+}
+
 /** The editor's panel: switch editing on, then click a part in the view to change it. */
 export function Inspector() {
   const { enabled, mode, selected, info, copies, parent, instancedOnly, message, busy } = useEditor();
   const drafts = useDraftStore((s) => s.drafts);
   const draft = selected ? drafts[selected] : undefined;
-  const dirty = Object.keys(drafts).length;
+  const constDrafts = useEditor((s) => s.constDrafts);
+  const dirty = Object.keys(drafts).length + Object.keys(constDrafts).length;
 
   return (
     <>
@@ -101,7 +152,7 @@ export function Inspector() {
       </label>
       {enabled && (
         <div className="g-edit">
-          {!selected && <p className="g-note">Click a box, cylinder, cone, dome, ball, roof, blob, tree, car or a wall of windows. A click picks the smallest part; use the up arrow to pick what it sits in. Parts are shown unmerged while editing, so counts above are higher than in the city.</p>}
+          {!selected && <p className="g-note">Click a box, cylinder, cone, dome, ball, roof, blob, tree, car, a wall of windows or a bay's lines or cones. A click picks the smallest part; use the up arrow to pick what it sits in. Parts are shown unmerged while editing, so counts above are higher than in the city.</p>}
           {selected && !info && <p className="g-note">Loading…</p>}
           {selected && info && (
             <>
@@ -116,7 +167,7 @@ export function Inspector() {
                 </button>
               )}
               {copies > 1 && <p className="g-note">Used {copies} times here: an edit applies to every copy.</p>}
-              {!instancedOnly && (
+              {!instancedOnly && (FIELDS[info.name] ?? []).some((f) => f.key === 'at' || f.key === 'rot' || f.key === 'rotY') && (
               <div className="g-seg">
                 <span>Gizmo</span>
                 <div>
@@ -140,6 +191,7 @@ export function Inspector() {
               </div>
             </>
           )}
+          <BayLayout />
           <div className="g-row g-actions">
             <button className="g-btn primary" disabled={!dirty || busy} onClick={() => void save()}>
               Save{dirty ? ` (${dirty})` : ''}

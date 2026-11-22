@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { PartInfo } from '../../../tools/editorParts';
+import type { ConstInfo, PartInfo } from '../../../tools/editorParts';
 import { useDraftStore } from '../../world/editDraft';
 
 /*
@@ -44,6 +44,10 @@ interface EditorState {
   parent: string | null;
   /** Everything picked is part of the instanced forest, so there is no single mesh to put a gizmo on. */
   instancedOnly: boolean;
+  /** The site's layout constants (where the bays are), as the source has them. */
+  consts: Record<string, ConstInfo> | null;
+  /** Unsaved changes to them: a number, or for BAY_Z one entry per bay (null leaves it). */
+  constDrafts: Record<string, number | (number | null)[]>;
   message: string;
   busy: boolean;
 }
@@ -56,6 +60,8 @@ export const useEditor = create<EditorState>(() => ({
   copies: 0,
   parent: null,
   instancedOnly: false,
+  consts: null,
+  constDrafts: {},
   message: '',
   busy: false,
 }));
@@ -88,6 +94,25 @@ export async function refreshInfo() {
   }
 }
 
+export async function loadConsts() {
+  try {
+    set({ consts: (await call<{ consts: Record<string, ConstInfo> }>('consts')).consts });
+  } catch (e) {
+    fail(e);
+  }
+}
+
+/** Unsaved layout constants never change the view (they are baked into the code); they apply when saved. */
+export function setConst(name: string, index: number | null, value: number) {
+  set((s) => {
+    const prev = s.constDrafts[name];
+    if (index === null) return { constDrafts: { ...s.constDrafts, [name]: value } };
+    const arr = Array.isArray(prev) ? [...prev] : [];
+    arr[index] = value;
+    return { constDrafts: { ...s.constDrafts, [name]: Array.from({ length: Math.max(arr.length, index + 1) }, (_, i) => arr[i] ?? null) } };
+  });
+}
+
 // ── drafts ───────────────────────────────────────────────────────────────────
 
 const drafts = () => useDraftStore.getState().drafts;
@@ -109,6 +134,7 @@ export function setDraftVec(key: string, values: (number | null)[]) {
 
 export function revert() {
   useDraftStore.setState({ drafts: {} });
+  set({ constDrafts: {} });
   say('Reverted');
 }
 
@@ -117,7 +143,9 @@ export function revert() {
 /** Once the file change has hot-reloaded, the real source carries the values and the drafts can go. */
 function settle() {
   useDraftStore.setState({ drafts: {} });
+  set({ constDrafts: {} });
   void refreshInfo();
+  void loadConsts();
 }
 let settleTimer: ReturnType<typeof setTimeout> | undefined;
 const settleSoon = () => {
@@ -150,9 +178,21 @@ async function run(fn: () => Promise<string>) {
 export const save = () =>
   run(async () => {
     const edits = Object.entries(drafts()).map(([id, changes]) => ({ id, changes }));
-    if (!edits.length) return 'Nothing to save';
-    const { changed } = await call<{ changed: number }>('save', { edits });
-    return changed ? `Saved ${changed} part${changed === 1 ? '' : 's'} to the source` : 'Nothing to save: the source already has these values';
+    const constChanges = get().constDrafts;
+    if (!edits.length && !Object.keys(constChanges).length) return 'Nothing to save';
+    const said: string[] = [];
+    let any = false;
+    if (edits.length) {
+      const { changed } = await call<{ changed: number }>('save', { edits });
+      if (changed) said.push(`${changed} part${changed === 1 ? '' : 's'}`);
+      any ||= changed > 0;
+    }
+    if (Object.keys(constChanges).length) {
+      const { changed } = await call<{ changed: boolean }>('consts', { changes: constChanges });
+      if (changed) said.push('the bay layout');
+      any ||= changed;
+    }
+    return any ? `Saved ${said.join(' and ')} to the source` : 'Nothing to save: the source already has these values';
   });
 
 export const duplicate = () =>
@@ -205,6 +245,14 @@ export const FIELDS: Record<string, Field[]> = {
   Blob: [{ key: 'size', label: 'Radii (x, y, z)', kind: 'vec', def: [1, 1, 1], step: 0.05, min: 0.01 }, POS, ROT, COLOR, GLOW, SHADOW],
   Tree: [POS, { key: 'size', label: 'Size', kind: 'num', def: 1, step: 0.05, min: 0.1 }, { key: 'color', label: 'Leaves', kind: 'color', def: '#4fa83d' }],
   Car: [COLOR, POS, { key: 'rotY', label: 'Heading (°)', kind: 'num', def: 0, step: 5, angle: true }],
+  BayLines: [
+    { key: 'z', label: 'Bay position (z)', kind: 'num', def: 0, step: 0.05 },
+    { key: 'color', label: 'Line color', kind: 'color', def: '#f2c94c' },
+  ],
+  ClosedBay: [
+    { key: 'z', label: 'Bay position (z)', kind: 'num', def: 0, step: 0.05 },
+    { key: 'x', label: 'Distance along the strip (x)', kind: 'num', def: 13.95, step: 0.05 },
+  ],
   ActivityWindows: [
     POS,
     num('w', 'Width (x)'),

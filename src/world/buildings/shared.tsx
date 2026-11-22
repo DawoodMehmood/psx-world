@@ -100,15 +100,14 @@ export function openBays<T>(h: number, bays: T[]): T[] {
 }
 
 /** Cones and a striped bar across the mouth of a closed bay (the bay runs along x, its mouth faces the street). */
-export function ClosedBay({ z, x = 13.95 }: { z: number; x?: number }) {
+export function ClosedBay(props: { z: number; x?: number; __src?: string }) {
+  const { z, x = 13.95, __src } = useDraft(props);
   return (
-    <group position={[x, 0, z]}>
-      {[-0.45, 0.45].map((cz) => (
-        <group key={cz}>
-          <Cone r={0.13} h={0.38} at={[0, 0, cz]} color="#ff7a1a" />
-          <Cyl r={0.1} h={0.06} at={[0, 0.16, cz]} color="#ffffff" low shadow={false} />
-        </group>
-      ))}
+    <group position={[x, 0, z]} userData={__src ? { src: __src } : undefined}>
+      <Cone r={0.13} h={0.38} at={[0, 0, -0.45]} color="#ff7a1a" />
+      <Cyl r={0.1} h={0.06} at={[0, 0.16, -0.45]} color="#ffffff" low shadow={false} />
+      <Cone r={0.13} h={0.38} at={[0, 0, 0.45]} color="#ff7a1a" />
+      <Cyl r={0.1} h={0.06} at={[0, 0.16, 0.45]} color="#ffffff" low shadow={false} />
       <Box size={[0.06, 0.08, 0.9]} at={[0, 0.3, 0]} color="#e8463a" shadow={false} />
       <Box size={[0.07, 0.085, 0.2]} at={[0, 0.3, 0]} color="#ffffff" shadow={false} />
     </group>
@@ -116,12 +115,13 @@ export function ClosedBay({ z, x = 13.95 }: { z: number; x?: number }) {
 }
 
 /** Painted lines of one parking or loading bay along the street edge. */
-export function BayLines({ z, color = '#f2c94c' }: { z: number; color?: string }) {
+export function BayLines(props: { z: number; color?: string; __src?: string }) {
+  const { z, color = '#f2c94c', __src } = useDraft(props);
   return (
-    <group>
-      <Box size={[2.3, 0.02, 0.06]} at={[BUILD_W + 1.25, 0, z + 0.55]} color={color} shadow={false} />
-      <Box size={[2.3, 0.02, 0.06]} at={[BUILD_W + 1.25, 0, z - 0.55]} color={color} shadow={false} />
-      <Box size={[0.06, 0.02, 1.16]} at={[BUILD_W + 0.1, 0, z]} color={color} shadow={false} />
+    <group position={[BUILD_W, 0, z]} userData={__src ? { src: __src } : undefined}>
+      <Box size={[2.3, 0.02, 0.06]} at={[1.25, 0, 0.55]} color={color} shadow={false} />
+      <Box size={[2.3, 0.02, 0.06]} at={[1.25, 0, -0.55]} color={color} shadow={false} />
+      <Box size={[0.06, 0.02, 1.16]} at={[0.1, 0, 0]} color={color} shadow={false} />
     </group>
   );
 }
